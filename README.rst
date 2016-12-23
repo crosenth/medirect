@@ -9,7 +9,7 @@ medirect - a multiprocessed utility for retrieving records and parsing feature t
 authors
 =======
 
-* Chris Rosenthal
+* Chris Rosenthal <crosenth@gmail.com>
 
 about
 =====
@@ -55,6 +55,12 @@ For developers::
   % python setup.py install
   # or
   % pip install -U .
+
+issues
+======
+
+Please use the Issue Tracker(s) available on Github or Bitbucket to report any bugs
+or feature requests.  For all other inquiries email `Chris Rosenthal <crosenth@gmail.com>`_.
 
 license
 =======
