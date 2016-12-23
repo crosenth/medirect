@@ -1,5 +1,5 @@
 =====================================
-medirect: ncbi edirect multiprocessed
+medirect: multiprocessed ncbi edirect
 =====================================
 
 medirect - a multiprocessed utility for retrieving records and parsing feature tables from ncbi
@@ -9,7 +9,7 @@ medirect - a multiprocessed utility for retrieving records and parsing feature t
 authors
 =======
 
-* Chris Rosenthal <crosenth@gmail.com>
+* `Chris Rosenthal <crosenth@gmail.com>`_
 
 about
 =====
