@@ -14,22 +14,22 @@ authors
 about
 =====
 
-I build nucleotide bacteria reference databases for a living.  I built this 
-package to do that quickly.  The utilities in this package can be slotted
-in along with other ncbi utilities and should follow the same 
+In my job I build a lot of nucleic bacteria reference databases.  I created this 
+package to help me do that quickly.  The utilities in this package (mefetch and ffetch) 
+can be slotted in along with other ncbi utilities and follow the same edirect 
+`documenation <https://www.ncbi.nlm.nih.gov/books/NBK25501/>`_,
 `guidelines and requirements <https://www.ncbi.nlm.nih.gov/books/NBK25497/#_chapter2_Usage_Guidelines_and_Requiremen_>`_
 and 
 `usage policies <https://www.ncbi.nlm.nih.gov/home/about/policies.shtml>`_.
 
-For large data requests I am highlighting two points from the usage policy:
+For large data requests I highlight two points from the usage policy:
 
 * Run retrieval scripts on weekends or between 9 pm and 5 am Eastern Time weekdays for any series of more than 100 requests.
 * Make no more than 3 requests every 1 second.
 
-Some additional documentation:
+Some additional documentation for using ffetch:
 
 * `feature tables <http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html>`_
-* `ncbi E-utilities <https://www.ncbi.nlm.nih.gov/books/NBK25501/>`_
 
 dependencies
 ============
