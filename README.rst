@@ -43,18 +43,15 @@ installation
 
 medirect can be installed in two ways:
 
-For regular users:
-::
+For regular users::
 
-  % pip install medirect
+  % pip3 install medirect
 
 For developers::
 
   % git clone git://github.com/crosenth/medirect.git 
   % cd medirect
   % python3 setup.py install
-  # or
-  % pip3 install -U .
 
 issues
 ======
