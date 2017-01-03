@@ -54,6 +54,12 @@ class MEFetch(medirect.MEDirect):
             '-csv', '--csv',
             action='store_true',
             help='If the input is in csv format')
+        input_group.add_argument(
+            '-format', '--format',
+            help='Format of record or report')
+        input_group.add_argument(
+            '-mode', '--mode',
+            help='text, xml, asn.1, json')
 
         proc_group = parser.add_argument_group(title='processing')
         proc_group.add_argument(
@@ -123,6 +129,12 @@ class MEFetch(medirect.MEDirect):
 
         # add efetch retmax argument
         base_args.update(retmax=retmax)
+
+        # convert these efetch arguments to Entrez.efetch arguments
+        if args.format:
+            base_args.update(rettype=args.format)
+        if args.mode:
+            base_args.update(retmode=args.mode)
 
         efetches = functools.partial(
             efetch, args.retry, args.max_retry, **base_args)
