@@ -52,9 +52,9 @@ For developers::
 
   % git clone git://github.com/crosenth/medirect.git 
   % cd medirect
-  % python setup.py install
+  % python3 setup.py install
   # or
-  % pip install -U .
+  % pip3 install -U .
 
 issues
 ======
