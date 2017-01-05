@@ -14,12 +14,13 @@ authors
 about
 =====
 
-In my job I build a lot of nucleic bacteria reference databases.  I created this 
-package to help me do that quickly.  The utilities in this package (mefetch and ffetch) 
-can be slotted in along with other ncbi utilities and follow the same edirect 
+As a bioinformatician I build a lot of nucleic bacteria reference databases.  I 
+created this package to help do that quickly.  The utilities in this package 
+(mefetch and ffetch) can be slotted in along with other ncbi utilities and 
+follow the same edirect
 `documenation <https://www.ncbi.nlm.nih.gov/books/NBK25501/>`_,
 `guidelines and requirements <https://www.ncbi.nlm.nih.gov/books/NBK25497/#_chapter2_Usage_Guidelines_and_Requiremen_>`_
-and 
+and
 `usage policies <https://www.ncbi.nlm.nih.gov/home/about/policies.shtml>`_.
 
 For large data requests I highlight two points from the usage policy:
@@ -30,6 +31,70 @@ For large data requests I highlight two points from the usage policy:
 Some additional documentation for using ffetch:
 
 * `feature tables <http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html>`_
+
+edirect `ftp downloads <https://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/>`_
+
+examples
+========
+
+The mefetch executable works exactly like edirect
+`efetch <https://www.ncbi.nlm.nih.gov/books/NBK179288/efetch>`_ with a an 
+additional multiprocessing argument ``-proc`` and a few more features.
+
+By allowing additional processes to download records The ``-proc`` argument 
+allows a linear download speed increase downloading large datasets.
+
+For example::
+
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -mode text -format acc -proc 1 > accessions.txt
+  0.53s user 0.11s system 0% cpu 11:43.11 total
+
+Which is equivalent to ncbi efetch::
+
+  % esearch -db nucleotide -query 'Rhizobium' | time efetch -mode text -format acc > accessions.txt
+  0.53s user 0.11s system 0% cpu 12:47.54 total
+
+Adding another processor ``-proc 2``::
+
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -proc 2 -mode text -format acc > accessions.txt
+  0.46s user 0.08s system 0% cpu 5:17.51 total
+
+And another::
+
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -proc 3 -mode text -format acc > accessions.txt
+  0.35s user 0.10s system 0% cpu 2:57.01 total
+
+And ``-proc 4`` (see usage policy)::
+
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -proc 4 -mode text -format acc > accessions.txt
+  0.35s user 0.08s system 0% cpu 1:40.54 total
+
+Results can be returned in the same order as efetch using the ``-in-order``
+argument.  Otherwise, the order will be determined by how fast ncbi returns
+results per process.
+
+The ``-retmax`` argument (or chunksize) determines the number of results 
+returned per ``-proc``.  By default, it is set to the 10,000 max records per
+`documentation <https://www.ncbi.nlm.nih.gov/books/NBK25499/#_chapter4_EFetch_>`_.
+Setting the ``-retmax`` to higher than 10,000 will automatically be set back
+down to 10,000.
+
+By default the ``-id`` reads stdin xml output from ``esearch``.  The ``-id`` 
+argument can also take input as a comma delimited list of ids or text
+file of ids.  When coupled with the ``-csv`` argument the input can be a csv
+file with additional argument columns.  This is useful for bulk downloads with 
+different positional arguments.  For example::
+
+  id,seq_start,seq_stop,strand
+  EF590893.1,1,271,1
+  EF590892.1,1,271,1
+  HQ620723.1,1,576,1
+  ...
+
+ftract allows csv output of different features from ncbi
+`feature tables <http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html>`_.
+The required ``-feature`` argument is comma separated
+feature_key:qualifier_key:qualifier_value.  
 
 dependencies
 ============
@@ -49,6 +114,8 @@ For regular users::
 
 For developers::
 
+  % pip3 install git://github.com/crosenth/medirect.git
+  # or
   % git clone git://github.com/crosenth/medirect.git 
   % cd medirect
   % python3 setup.py install
