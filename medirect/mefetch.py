@@ -32,7 +32,8 @@ class MEFetch(medirect.MEDirect):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            'email',
+            '-email', '--email',
+            required=True,
             help="The name of the run")
         parser.add_argument(
             '-debug', '--debug',
@@ -54,6 +55,7 @@ class MEFetch(medirect.MEDirect):
             '-csv', '--csv',
             action='store_true',
             help='If the input is in csv format')
+
         input_group.add_argument(
             '-format', '--format',
             help='Format of record or report')
