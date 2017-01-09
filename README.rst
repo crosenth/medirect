@@ -46,7 +46,7 @@ allows a linear download speed increase downloading large datasets.
 
 For example::
 
-  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -mode text -format acc -proc 1 > accessions.txt
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch -email user@ema.il -mode text -format acc -proc 1 > accessions.txt
   0.53s user 0.11s system 0% cpu 11:43.11 total
 
 Which is equivalent to ncbi efetch::
@@ -56,17 +56,17 @@ Which is equivalent to ncbi efetch::
 
 Adding another processor ``-proc 2``::
 
-  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -proc 2 -mode text -format acc > accessions.txt
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch -email user@ema.il -proc 2 -mode text -format acc > accessions.txt
   0.46s user 0.08s system 0% cpu 5:17.51 total
 
 And another::
 
-  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -proc 3 -mode text -format acc > accessions.txt
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch -email user@ema.il -proc 3 -mode text -format acc > accessions.txt
   0.35s user 0.10s system 0% cpu 2:57.01 total
 
 And ``-proc 4`` (see usage policy)::
 
-  % esearch -db nucleotide -query 'Rhizobium' | time mefetch user@ema.il -proc 4 -mode text -format acc > accessions.txt
+  % esearch -db nucleotide -query 'Rhizobium' | time mefetch -email user@ema.il -proc 4 -mode text -format acc > accessions.txt
   0.35s user 0.08s system 0% cpu 1:40.54 total
 
 Results can be returned in the same order as efetch using the ``-in-order``
