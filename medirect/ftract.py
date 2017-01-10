@@ -27,25 +27,19 @@ class Ftract(medirect.MEDirect):
             'table',
             nargs='?',
             default=sys.stdin,
-            help="The name of the run")
+            help="An ncbi feature table in text format")
         parser.add_argument(
             '-feature', '--feature',
             action='append',
             dest='features',
             required=True,
-            help=('parse only specific record features in feature '
-                  'table columns via string pattern '
-                  'feature_key:qualifier_key:qualifier_value.'
-                  'ex: rRNA:product:16S'))
-        parser.add_argument(
-            '--strand',
-            default='1',
-            choices=['1', '2'],
-            help='1 for the plus strand, 2 for '
-                 'the minus strand. [%(default)s]')
+            help='parse only specific record features in feature '
+                 'table columns via string pattern '
+                 'feature_key:qualifier_key:qualifier_value.'
+                 'ex: rRNA:product:16S')
         return parser
 
-    def filter_features(self, records, features, strand):
+    def filter_features(self, records, features):
         """
         http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html
         Parsing a five column, tab delimited file with a fasta file
@@ -60,8 +54,6 @@ class Ftract(medirect.MEDirect):
         column 4: qualifier_key
         column 5: qualifier_value
         """
-
-        reverse_strand = {'1': '2', '2': '1'}
 
         # parse features for columns 3-5
         features = [f.split(':') for f in features]
@@ -102,9 +94,9 @@ class Ftract(medirect.MEDirect):
             if match and seq_start and seq_stop:
                 if seq_stop < seq_start:
                     # swap coordinates and switch strands
-                    yield seqid, seq_stop, seq_start, reverse_strand[strand]
+                    yield seqid, seq_stop, seq_start, '2'
                 else:
-                    yield seqid, seq_start, seq_stop, strand
+                    yield seqid, seq_start, seq_stop, '1'
                 seq_start, seq_stop = None, None
                 continue
 
@@ -120,7 +112,7 @@ class Ftract(medirect.MEDirect):
     def main(self, args, *other_args):
         out = csv.writer(args.out)
         out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
-        for f in self.filter_features(args.table, args.features, args.strand):
+        for f in self.filter_features(args.table, args.features):
             out.writerow(f)
 
 
