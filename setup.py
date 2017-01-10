@@ -7,8 +7,10 @@ if sys.version_info < (3, 0):
 setuptools.setup(
     author='Chris Rosenthal',
     author_email='crosenth@gmail.com',
-    description='ncbi medirect multiprocessed plus more',
+    description='multiprocessed ncbi edirect and ftract',
     name='medirect',
+    keywords=['ncbi', 'edirect', 'multiprocessing',
+              'entrez', 'bioinformatics'],
     packages=setuptools.find_packages(),
     entry_points={
         'console_scripts': [
