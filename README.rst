@@ -34,6 +34,30 @@ Some additional documentation for using ffetch:
 
 edirect `ftp downloads <https://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/>`_
 
+dependencies
+============
+
+* Python 3.x
+* `biopython <https://pypi.python.org/pypi/biopython>`_ >= 1.68
+* `retrying <https://pypi.python.org/pypi/retrying>`_ >= 1.3.3
+
+installation
+============
+
+medirect can be installed in two ways:
+
+For regular users::
+
+  % pip3 install medirect
+
+For developers::
+
+  % pip3 install git://github.com/crosenth/medirect.git
+  # or
+  % git clone git://github.com/crosenth/medirect.git 
+  % cd medirect
+  % python3 setup.py install
+
 examples
 ========
 
@@ -59,7 +83,7 @@ Adding another processor ``-proc 2``::
   % esearch -db nucleotide -query 'Rhizobium' | time mefetch -email user@ema.il -proc 2 -mode text -format acc > accessions.txt
   0.46s user 0.08s system 0% cpu 5:17.51 total
 
-And another::
+And another ``-proc 3`` (default)::
 
   % esearch -db nucleotide -query 'Rhizobium' | time mefetch -email user@ema.il -proc 3 -mode text -format acc > accessions.txt
   0.35s user 0.10s system 0% cpu 2:57.01 total
@@ -83,42 +107,28 @@ By default the ``-id`` reads stdin xml output from ``esearch``.  The ``-id``
 argument can also take input as a comma delimited list of ids or text
 file of ids.  When coupled with the ``-csv`` argument the input can be a csv
 file with additional argument columns.  This is useful for bulk downloads with 
-different positional arguments.  For example::
-
-  id,seq_start,seq_stop,strand
-  EF590893.1,1,271,1
-  EF590892.1,1,271,1
-  HQ620723.1,1,576,1
-  ...
+different positional arguments.
 
 ftract allows csv output of different features from ncbi
 `feature tables <http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html>`_.
 The required ``-feature`` argument is comma separated
-feature_key:qualifier_key:qualifier_value.  
+feature_key:qualifier_key:qualifier_value
+::
 
-dependencies
-============
+  % mefetch -id KN150849 -db nucleotide -email user@ema.il -format ft | ftract --feature rrna::16s
+  id,seq_start,seq_stop,strand
+  KN150849.1,594136,595654,2
+  KN150849.1,807985,809503,2
+  KN150849.1,2227751,2229271,1
 
-* Python 3.x
-* `biopython <https://pypi.python.org/pypi/biopython>`_ >= 1.68
-* `retrying <https://pypi.python.org/pypi/retrying>`_ >= 1.3.3
+And pipe this back into mefetch to download these three regions in genbank format::
 
-installation
-============
+  % mefetch -id KN150849 -db nucleotide -email user@ema.il -format ft | ftract --feature rrna:product:16s | mefetch -db nucleotide -email crosenth@uw.edu -csv -format gb
 
-medirect can be installed in two ways:
 
-For regular users::
+And finally, return all the Burkholderia gladioli 16s rrna products in fasta format like this::
 
-  % pip3 install medirect
-
-For developers::
-
-  % pip3 install git://github.com/crosenth/medirect.git
-  # or
-  % git clone git://github.com/crosenth/medirect.git 
-  % cd medirect
-  % python3 setup.py install
+  % esearch -query 'Burkholderia gladioli' -db 'nucleotide' | mefetch -email user@ema.il -format ft | ftract --feature rrna:product:16s | mefetch -db nucleotide -email user@ema.il -csv -format fasta
 
 issues
 ======
