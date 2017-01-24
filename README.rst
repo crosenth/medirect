@@ -15,7 +15,7 @@ utilities
 =========
 
 * mefetch
-* ffetch
+* ftract
 
 about
 =====
@@ -25,7 +25,7 @@ Part of my job is to gather sequences data where it is available from outside
 sources. One of those sources is the NCBI nucleotide database.  I designed this 
 package to help me gather data from NCBI quickly by utilizing multiple processors 
 to make multiple data requests from the NCBI database servers.  The utilities 
-mefetch and ffetch are designed to work like efetch and xtract and 
+mefetch and ftract are designed to work like efetch and xtract and 
 can be slotted in along with other ncbi utilities and follow the same edirect
 `documenation <https://www.ncbi.nlm.nih.gov/books/NBK25501/>`_,
 `guidelines and requirements <https://www.ncbi.nlm.nih.gov/books/NBK25497/#_chapter2_Usage_Guidelines_and_Requiremen_>`_
@@ -40,7 +40,7 @@ For this reason I highlight two points from the usage policy:
 * Run retrieval scripts on weekends or between 9 pm and 5 am Eastern Time weekdays for any series of more than 100 requests.
 * Make no more than 3 requests every 1 second.
 
-The ffetch utility pattern matches features based on the three column table
+The ftract utility pattern matches features based on the three column table
 structure described here: `feature tables <http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html>`_
 It is designed to parse data and coordinates from feature tables which are
 magnitudes smaller and faster to parse than the xml tables and xtract parser utility
