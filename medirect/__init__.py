@@ -20,7 +20,7 @@ import logging
 import sys
 
 
-class MEDirect(object):
+class MEDirect:
     def __init__(self):
         parser = self.add_arguments(self.arg_parser())
         args, other_args = parser.parse_known_args()
