@@ -11,14 +11,20 @@ authors
 
 * `Chris Rosenthal <crosenth@gmail.com>`_
 
+utilities
+=========
+
+* mefetch
+* ffetch
+
 about
 =====
 
-As a bioinformatician I build a lot of bacterial dna reference databases.  Part of my job
-is to gather sequences data where it is available from outside sources. 
-One of those sources is the NCBI nucleotide database.  I designed this package 
-to help me gather data from NCBI quickly by utilizing multiple processors to 
-make multiple data requests from the NCBI database servers.  The utilities 
+As a bioinformatician I build a lot of bacterial dna reference databases.  
+Part of my job is to gather sequences data where it is available from outside 
+sources. One of those sources is the NCBI nucleotide database.  I designed this 
+package to help me gather data from NCBI quickly by utilizing multiple processors 
+to make multiple data requests from the NCBI database servers.  The utilities 
 mefetch and ffetch are designed to work like efetch and xtract and 
 can be slotted in along with other ncbi utilities and follow the same edirect
 `documenation <https://www.ncbi.nlm.nih.gov/books/NBK25501/>`_,
