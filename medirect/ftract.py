@@ -27,12 +27,12 @@ class Ftract(medirect.MEDirect):
             'table',
             nargs='?',
             default=sys.stdin,
+            type=argparse.FileType('r'),
             help="An ncbi feature table in text format")
         parser.add_argument(
             '-feature', '--feature',
             action='append',
             dest='features',
-            required=True,
             help='parse only specific record features in feature '
                  'table columns via string pattern '
                  'feature_key:qualifier_key:qualifier_value.'
@@ -56,15 +56,19 @@ class Ftract(medirect.MEDirect):
         """
 
         # parse features for columns 3-5
-        features = [f.split(':') for f in features]
-        for f in features:
-            # make sure features are valid
-            if len(f) != 3:
-                msg = str(f) + ' is not a valid feature argument'
-                raise argparse.ArgumentTypeError(msg)
-        features = zip(*features)
-        features = [[x if x else '.' for x in f] for f in features]
-        features = ['|'.join(f) for f in features]
+        if features:
+            features = [f.split(':') for f in features]
+            for f in features:
+                # make sure features are valid
+                if len(f) != 3:
+                    msg = str(f) + ' is not a valid feature argument'
+                    raise argparse.ArgumentTypeError(msg)
+            features = zip(*features)
+            features = ['' if '' in f else f for f in features]
+            features = [[x if x else '.' for x in f] for f in features]
+            features = ['|'.join(f) for f in features]
+        else:
+            features = ['', '', '']
 
         # create column patterns
         column1 = '\D?(?P<seq_start>\d+)'
