@@ -72,8 +72,7 @@ class MEDirect:
             3: logging.DEBUG,
         }.get(verbosity, logging.DEBUG)
 
-        log_format = ('%(asctime)s %(levelname)s %(filename)s '
-                      '%(funcName)s %(lineno)s %(message)s')
+        log_format = ('%(asctime)s %(levelname)s %(lineno)s %(message)s')
 
         logging.basicConfig(
             stream=log,
