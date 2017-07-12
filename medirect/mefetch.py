@@ -162,7 +162,6 @@ def liststr(l):
 
     s = None
     if hasattr(l, '__iter__') and not isinstance(l, str):
-        l = list(l)
         if len(l) == 0:
             s = 'None'
         elif len(l) == 1:
@@ -180,7 +179,7 @@ def edirect_pprint(**kwds):
     http://www.ncbi.nlm.nih.gov/books/NBK179288/
     """
 
-    entrez = dict(db='-db', rettype='-format', retmode='-mode',
+    entrez = dict(id='-id', db='-db', rettype='-format', retmode='-mode',
                   strand='-strand', complexity='-complexity',
                   seq_start='-seq_start', seq_stop='-seq_stop')
     keys = set(entrez.keys()).intersection(list(kwds.keys()))
@@ -190,16 +189,15 @@ def edirect_pprint(**kwds):
 
 
 def efetch(retry, max_retry, chunks, **args):
-    '''
+    """
     Wrap Entrez.efetch with some http exception retrying
-    '''
+    """
 
     def print_retry_message(exception):
         """
         http exceptions: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
         retrying api: https://pypi.python.org/pypi/retrying
         """
-
         seconds = float(retry) / 1000
         msg = '{}, retrying in {} seconds... {} max retry(ies)'.format(
             exception, seconds, max_retry)
@@ -212,7 +210,7 @@ def efetch(retry, max_retry, chunks, **args):
         stop_max_attempt_number=max_retry)
     def rfetch(chunk, **args):
         pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
-        logging.debug(edirect_pprint(**dict(pprint_chunk, **args)))
+        logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
         args.update(**chunk)
         db = args.pop('db')
         return Entrez.efetch(db, **args).read()
