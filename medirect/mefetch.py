@@ -151,8 +151,9 @@ class MEFetch(medirect.MEDirect):
             results = pool.imap_unordered(efetches, chunks)
 
         for r in results:
-            # replace multiple newlines with single newline
-            args.out.write(r.rstrip() + '\n')
+            # remove blank lines and append a single newline
+            r = '\n'.join(l for l in r.split('\n') if l.strip()) + '\n'
+            args.out.write(r)
 
 
 def liststr(l):
