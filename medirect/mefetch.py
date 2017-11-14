@@ -49,6 +49,7 @@ class MEFetch(medirect.MEDirect):
         input_group = parser.add_argument_group(title='input')
         input_group.add_argument(
             '-id', '--id',
+            metavar='',
             default=sys.stdin,
             help='File or comma separated list of ids to fetch [stdin]')
         input_group.add_argument(
@@ -58,19 +59,23 @@ class MEFetch(medirect.MEDirect):
 
         input_group.add_argument(
             '-format', '--format',
+            metavar='',
             help='Format of record or report')
         input_group.add_argument(
             '-mode', '--mode',
+            metavar='',
             help='text, xml, asn.1, json')
 
         proc_group = parser.add_argument_group(title='processing')
-        proc_group.add_argument(
+        retry_group = proc_group.add_mutually_exclusive_group()
+        retry_group.add_argument(
             '-max-retry', '--max-retry',
             metavar='INT',
-            type=int,
+            type=lambda x: None if x == '-1' else int(x),
             default=10,
-            help=('After http exception time to wait '
-                  'before trying again [%(default)s]'))
+            help=('Max number of retries after consecutive '
+                  'http exceptions [%(default)s].  Use -1 for '
+                  'continuous retrying.'))
         proc_group.add_argument(
             '-proc', '--proc',
             default=3,
@@ -201,7 +206,7 @@ def efetch(retry, max_retry, chunks, **args):
         """
         seconds = float(retry) / 1000
         msg = '{}, retrying in {} seconds... {} max retry(ies)'.format(
-            exception, seconds, max_retry)
+            exception, seconds, max_retry or '')
         logging.error(msg)
         return True
 

@@ -51,6 +51,7 @@ class MEDirect:
                  '(eg, -v is verbose, -vv more so)')
         parser.add_argument(
             '-out', '--out',
+            metavar='',
             default=sys.stdout,
             type=argparse.FileType('w'),
             help='Output location [sys.stdout]')
