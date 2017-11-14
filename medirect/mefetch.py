@@ -206,7 +206,7 @@ def efetch(retry, max_retry, chunks, **args):
         """
         seconds = float(retry) / 1000
         msg = '{}, retrying in {} seconds... {} max retry(ies)'.format(
-            exception, seconds, max_retry or '')
+            exception, seconds, max_retry or 'no')
         logging.error(msg)
         return True
 
