@@ -80,7 +80,7 @@ class Ftract(medirect.MEDirect):
 
         # three line types, lines 1 and 2 are tab delimited
         seqid_line = re.compile(
-            '^>Feature (?P<seqid>.*)', re.IGNORECASE)
+            '^>Feature (?P<seqid>\S*)', re.IGNORECASE)
         line1 = re.compile(
             '^{}\t{}\t{}'.format(column1, column2, column3), re.IGNORECASE)
         line2 = re.compile(
