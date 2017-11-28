@@ -79,15 +79,16 @@ class Ftract(medirect.MEDirect):
         column5 = '.*?(?P<qualifier_value>{})+.*?'.format(column5)
 
         # three line types, lines 1 and 2 are tab delimited
-        seqid_line = re.compile('^>.*\|(?P<seqid>.*)\|.*',
-                                re.IGNORECASE)
-        line1 = re.compile('^{}\t{}\t{}'.format(column1, column2, column3),
-                           re.IGNORECASE)
-        line2 = re.compile('^\t\t\t{}\t{}'.format(column4, column5),
-                           re.IGNORECASE)
+        seqid_line = re.compile(
+            '^>Feature (?P<seqid>.*)', re.IGNORECASE)
+        line1 = re.compile(
+            '^{}\t{}\t{}'.format(column1, column2, column3), re.IGNORECASE)
+        line2 = re.compile(
+            '^\t\t\t{}\t{}'.format(column4, column5), re.IGNORECASE)
 
         # iterate and match lines
         seqid, seq_start, seq_stop = None, None, None
+        yielded = False
         for line in records:
             match = re.search(seqid_line, line)
             if match:
@@ -95,22 +96,20 @@ class Ftract(medirect.MEDirect):
                 continue
 
             match = re.search(line2, line)
-            if match and seq_start and seq_stop:
+            if match and not yielded:
                 if seq_stop < seq_start:
                     # swap coordinates and switch strands
                     yield seqid, seq_stop, seq_start, '2'
                 else:
                     yield seqid, seq_start, seq_stop, '1'
-                seq_start, seq_stop = None, None
+                yielded = True
                 continue
 
             match = re.search(line1, line)
             if match:
                 seq_start = int(match.group('seq_start'))
                 seq_stop = int(match.group('seq_stop'))
-                continue
-            else:
-                seq_start, seq_stop = None, None
+                yielded = False
                 continue
 
     def main(self, args, *other_args):
