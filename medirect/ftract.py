@@ -70,47 +70,54 @@ class Ftract(medirect.MEDirect):
         else:
             features = ['', '', '']
 
-        # create column patterns
+        feat_key_pattern, qual_key_pattern, qual_val_pattern = features
+
+        # general patterns for all 5 feature table columns
         column1 = '\D?(?P<seq_start>\d+)'
         column2 = '\D?(?P<seq_stop>\d+)'
-        column3, column4, column5 = features
-        column3 = '.*?(?P<feature_key>{})+.*?'.format(column3)
-        column4 = '.*?(?P<qualifier_key>{})+.*?'.format(column4)
-        column5 = '.*?(?P<qualifier_value>{})+.*?'.format(column5)
+        column3 = '.*?(?P<feature_key>{})+.*?'.format(feat_key_pattern)
+        column4 = '.*?(?P<qualifier_key>{})+.*?'.format(qual_key_pattern)
+        column5 = '.*?(?P<qualifier_value>{})+.*?'.format(qual_val_pattern)
 
-        # three line types, lines 1 and 2 are tab delimited
+        # match generally if we are in line1 and line2
+        line1 = re.compile('^{}\t{}\t'.format(column1, column2))
+        line2 = re.compile('^\t')
+
+        # these three patterns look for features passed by user
         seqid_line = re.compile(
             '^>Feature (?P<seqid>\S*)', re.IGNORECASE)
-        line1 = re.compile(
+        coordinates_feature_key = re.compile(
             '^{}\t{}\t{}'.format(column1, column2, column3), re.IGNORECASE)
-        line2 = re.compile(
+        qualifiers = re.compile(
             '^\t\t\t{}\t{}'.format(column4, column5), re.IGNORECASE)
 
         # iterate and match lines
         seqid, seq_start, seq_stop = None, None, None
-        yielded = False
+
         for line in records:
-            match = re.search(seqid_line, line)
-            if match:
-                seqid = match.group('seqid')
-                continue
-
-            match = re.search(line2, line)
-            if match and not yielded:
-                if seq_stop < seq_start:
-                    # swap coordinates and switch strands
-                    yield seqid, seq_stop, seq_start, '2'
+            '''
+            Order is important for performance.  Match for line2 first
+            because that is the most common line in a feature table.
+            '''
+            if re.search(line2, line):
+                if re.search(qualifiers, line) and seq_start and seq_stop:
+                    if seq_stop < seq_start:
+                        # swap coordinates and switch strands
+                        yield seqid, seq_stop, seq_start, '2'
+                    else:
+                        yield seqid, seq_start, seq_stop, '1'
+                    seq_start, seq_stop = None, None
+            elif re.search(line1, line):
+                match = re.search(coordinates_feature_key, line)
+                if match:
+                    seq_start = int(match.group('seq_start'))
+                    seq_stop = int(match.group('seq_stop'))
                 else:
-                    yield seqid, seq_start, seq_stop, '1'
-                yielded = True
-                continue
-
-            match = re.search(line1, line)
-            if match:
-                seq_start = int(match.group('seq_start'))
-                seq_stop = int(match.group('seq_stop'))
-                yielded = False
-                continue
+                    seq_start, seq_stop = None, None
+            else:
+                match = re.search(seqid_line, line)
+                seqid = match.group('seqid')
+                seq_start, seq_stop = None, None
 
     def main(self, args, *other_args):
         out = csv.writer(args.out)

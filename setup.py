@@ -11,7 +11,7 @@ setuptools.setup(
     name='medirect',
     keywords=['ncbi', 'edirect', 'multiprocessing',
               'entrez', 'bioinformatics'],
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=['tests']),
     entry_points={
         'console_scripts': [
             'mefetch=medirect.mefetch:run',

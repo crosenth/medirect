@@ -1,0 +1,42 @@
+>Feature 0
+>Feature 1
+304	1728	CDS
+			gene	trkG
+			inference	ab initio prediction:Prodigal:2.6
+			inference	similar to AA sequence:UniProtKB:P23849
+			locus_tag	OJPFPCPC_00001
+			product	Trk system potassium uptake protein TrkG
+1866	2657	CDS
+			inference	ab initio prediction:Prodigal:2.6
+			locus_tag	OJPFPCPC_00002
+			product	hypothetical protein
+2650	3582	CDS
+			inference	ab initio prediction:Prodigal:2.6
+			locus_tag	OJPFPCPC_00003
+			product	hypothetical protein
+3560	3769	CDS
+			inference	ab initio prediction:Prodigal:2.6
+			locus_tag	OJPFPCPC_00004
+			product	hypothetical protein
+3773	4867	CDS
+			inference	ab initio prediction:Prodigal:2.6
+			locus_tag	OJPFPCPC_00005
+			product	hypothetical protein
+4848	6149	CDS
+			inference	ab initio prediction:Prodigal:2.6
+			locus_tag	OJPFPCPC_00006
+			product	hypothetical protein
+6152	6412	CDS
+			inference	ab initio prediction:Prodigal:2.6
+			locus_tag	OJPFPCPC_00007
+			product	hypothetical protein
+225078	223523	rRNA
+			product	16S ribosomal RNA
+>Feature 3
+>Feature 4
+>Feature 5
+>Feature 629
+150	1687	rRNA
+			locus_tag	OJPFPCPC_01057
+			product	16S ribosomal RNA
+			score	0
