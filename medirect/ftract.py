@@ -39,6 +39,11 @@ class Ftract(medirect.MEDirect):
                  'ex: rRNA:product:16S')
         return parser
 
+    def coordinates(self, start, stop, strand='1'):
+        if stop < start:
+            start, stop, strand = stop, start, '2'
+        return start, stop, strand
+
     def filter_features(self, records, features):
         """
         http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html
@@ -80,14 +85,14 @@ class Ftract(medirect.MEDirect):
         column5 = '.*?(?P<qualifier_value>{})+.*?'.format(qual_val_pattern)
 
         # match generally if we are in line1 and line2
-        line1 = re.compile('^{}\t{}\t'.format(column1, column2))
+        line1 = re.compile('^{}\t{}'.format(column1, column2))
         line2 = re.compile('^\t')
 
         # these three patterns look for features passed by user
         seqid_line = re.compile(
             '^>Feature (?P<seqid>\S*)', re.IGNORECASE)
         coordinates_feature_key = re.compile(
-            '^{}\t{}\t{}'.format(column1, column2, column3), re.IGNORECASE)
+            '^{}\t{}\t?{}'.format(column1, column2, column3), re.IGNORECASE)
         qualifiers = re.compile(
             '^\t\t\t{}\t{}'.format(column4, column5), re.IGNORECASE)
 
@@ -96,22 +101,22 @@ class Ftract(medirect.MEDirect):
 
         for line in records:
             '''
-            Order is important for performance.  Match for line2 first
-            because that is the most common line in a feature table.
+            Match for line2 first because that is the most
+            common line in a feature table.
             '''
             if re.search(line2, line):
-                if re.search(qualifiers, line) and seq_start and seq_stop:
-                    if seq_stop < seq_start:
-                        # swap coordinates and switch strands
-                        yield seqid, seq_stop, seq_start, '2'
-                    else:
-                        yield seqid, seq_start, seq_stop, '1'
+                if seq_start and seq_stop and re.search(qualifiers, line):
+                    yield (seqid, *self.coordinates(seq_start, seq_stop))
                     seq_start, seq_stop = None, None
             elif re.search(line1, line):
                 match = re.search(coordinates_feature_key, line)
                 if match:
                     seq_start = int(match.group('seq_start'))
                     seq_stop = int(match.group('seq_stop'))
+                    if not (qual_key_pattern or qual_val_pattern):
+                        # immediately yield if no qualifier patterns
+                        yield (seqid, *self.coordinates(seq_start, seq_stop))
+                        seq_start, seq_stop = None, None
                 else:
                     seq_start, seq_stop = None, None
             else:

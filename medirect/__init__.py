@@ -21,11 +21,12 @@ import sys
 
 
 class MEDirect:
-    def __init__(self):
-        parser = self.add_arguments(self.arg_parser())
-        args, other_args = parser.parse_known_args()
-        self.setup_logging(args.log, args.verbosity)
-        self.main(args, *other_args)
+    def __init__(self, testing=None):
+        if testing is None:
+            parser = self.add_arguments(self.arg_parser())
+            args, other_args = parser.parse_known_args()
+            self.setup_logging(args.log, args.verbosity)
+            self.main(args, *other_args)
 
     def add_arguments(self, parser):
         '''

@@ -6,13 +6,14 @@ from medirect import ftract
 class Test_ftract(unittest.TestCase):
 
     def setUp(self):
+        self.ftract = ftract.Ftract('test')
         with open('tests/data.ft') as data:
             self.data = list(data)
 
     def test01(self):
         correct = [('1', 223523, 225078, '2'), ('629', 150, 1687, '1')]
-        results = ftract.Ftract.filter_features(
-            None, self.data, ['rrna:product:16S'])
+        results = self.ftract.filter_features(
+            self.data, ['rrna:product:16S'])
         self.assertEqual(correct, list(results))
 
     def test02(self):
@@ -25,15 +26,17 @@ class Test_ftract(unittest.TestCase):
             ('1', 4848, 6149, '1'),
             ('1', 6152, 6412, '1'),
             ('1', 223523, 225078, '2'),
-            ('629', 150, 1687, '1')]
-        results = ftract.Ftract.filter_features(
-            None, self.data, ['::'])
+            ('629', 150, 1687, '1'),
+            ('gb|PKKU01000069.1|', 82536, 83733, '2'),
+            ('gb|PKKU01000069.1|', 83450, 83733, '2'),
+            ('gb|PKKU01000069.1|', 82536, 83451, '2'),
+            ('gb|PKKU01000069.1|', 83959, 84030, '1')]
+        results = self.ftract.filter_features(self.data, ['::'])
         self.assertEqual(correct, list(results))
 
     def test03(self):
         correct = [('1', 223523, 225078, '2'), ('629', 150, 1687, '1')]
-        results = ftract.Ftract.filter_features(
-            None, self.data, ['rrna::'])
+        results = self.ftract.filter_features(self.data, ['rrna::'])
         self.assertEqual(correct, list(results))
 
     def test04(self):
@@ -46,9 +49,10 @@ class Test_ftract(unittest.TestCase):
             ('1', 4848, 6149, '1'),
             ('1', 6152, 6412, '1'),
             ('1', 223523, 225078, '2'),
-            ('629', 150, 1687, '1')]
-        results = ftract.Ftract.filter_features(
-            None, self.data, [':product:'])
+            ('629', 150, 1687, '1'),
+            ('gb|PKKU01000069.1|', 82536, 83451, '2'),
+            ('gb|PKKU01000069.1|', 83959, 84030, '1')]
+        results = self.ftract.filter_features(self.data, [':product:'])
         self.assertEqual(correct, list(results))
 
     def test05(self):
@@ -61,16 +65,24 @@ class Test_ftract(unittest.TestCase):
             ('1', 4848, 6149, '1'),
             ('1', 6152, 6412, '1'),
             ('1', 223523, 225078, '2'),
-            ('629', 150, 1687, '1')]
-        results = ftract.Ftract.filter_features(
-            None, self.data, [':product:'])
+            ('629', 150, 1687, '1'),
+            ('gb|PKKU01000069.1|', 82536, 83733, '2'),
+            ('gb|PKKU01000069.1|', 83450, 83733, '2'),
+            ('gb|PKKU01000069.1|', 82536, 83451, '2'),
+            ('gb|PKKU01000069.1|', 83959, 84030, '1')]
+        results = self.ftract.filter_features(self.data, None)
         self.assertEqual(correct, list(results))
 
     def test06(self):
         correct = [('1', 3560, 3769, '1')]
-        results = ftract.Ftract.filter_features(
-            None, self.data, ['::OJPFPCPC_00004'])
+        results = self.ftract.filter_features(self.data, ['::OJPFPCPC_00004'])
         self.assertEqual(correct, list(results))
+
+    def test07(self):
+        self.assertEqual((5, 8, '1'), self.ftract.coordinates(5, 8, '1'))
+
+    def test08(self):
+        self.assertEqual((5, 8, '2'), self.ftract.coordinates(8, 5, '1'))
 
 
 if __name__ == '__main__':

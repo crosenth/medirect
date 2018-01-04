@@ -40,3 +40,19 @@
 			locus_tag	OJPFPCPC_01057
 			product	16S ribosomal RNA
 			score	0
+>Feature gb|PKKU01000069.1|
+83733	82536	gene
+			locus_tag	APX95_19225
+83733	83450	CDS
+83451	82536
+			product	DDE domain-containing protein
+			transl_table	11
+			protein_id	gb|PLB61711.1||gnl|WGS:PKKU|APX95_19225
+			note	programmed frameshift
+			exception	ribosomal slippage
+			inference	COORDINATES: similar to AA sequence:RefSeq:WP_076611482.1
+83959	>84030	CDS
+			product	IS1 family transposase
+			transl_table	11
+			protein_id	gb|PLB61717.1||gnl|WGS:PKKU|APX95_19230
+			inference	COORDINATES: similar to AA sequence:RefSeq:WP_086558268.1
