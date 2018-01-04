@@ -84,9 +84,8 @@ class Ftract(medirect.MEDirect):
         column4 = '.*?(?P<qualifier_key>{})+.*?'.format(qual_key_pattern)
         column5 = '.*?(?P<qualifier_value>{})+.*?'.format(qual_val_pattern)
 
-        # match generally if we are in line1 and line2
+        # general line1 coordinates pattern
         line1 = re.compile('^{}\t{}'.format(column1, column2))
-        line2 = re.compile('^\t')
 
         # these three patterns look for features passed by user
         seqid_line = re.compile(
@@ -104,7 +103,7 @@ class Ftract(medirect.MEDirect):
             Match for line2 first because that is the most
             common line in a feature table.
             '''
-            if re.search(line2, line):
+            if line.startswith('\t'):
                 if seq_start and seq_stop and re.search(qualifiers, line):
                     yield (seqid, *self.coordinates(seq_start, seq_stop))
                     seq_start, seq_stop = None, None
@@ -119,10 +118,12 @@ class Ftract(medirect.MEDirect):
                         seq_start, seq_stop = None, None
                 else:
                     seq_start, seq_stop = None, None
-            else:
+            elif line.startswith('>Feature'):
                 match = re.search(seqid_line, line)
                 seqid = match.group('seqid')
                 seq_start, seq_stop = None, None
+            else:
+                raise ValueError('Invalid feature table line: ' + line)
 
     def main(self, args, *other_args):
         out = csv.writer(args.out)
