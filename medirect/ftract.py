@@ -123,7 +123,8 @@ class Ftract(medirect.MEDirect):
                 seqid = match.group('seqid')
                 seq_start, seq_stop = None, None
             else:
-                raise ValueError('Invalid feature table line: ' + line)
+                msg = 'Seqid "{}" contains an invalid feature table line: {}'
+                raise ValueError(msg.format(seqid, line))
 
     def main(self, args, *other_args):
         out = csv.writer(args.out)

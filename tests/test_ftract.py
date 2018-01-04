@@ -84,6 +84,10 @@ class Test_ftract(unittest.TestCase):
     def test08(self):
         self.assertEqual((5, 8, '2'), self.ftract.coordinates(8, 5, '1'))
 
+    def test09(self):
+        with self.assertRaises(ValueError):
+            list(self.ftract.filter_features('invalid', None))
+
 
 if __name__ == '__main__':
     unittest.main()
