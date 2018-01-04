@@ -129,7 +129,9 @@ class Ftract(medirect.MEDirect):
     def main(self, args, *other_args):
         out = csv.writer(args.out)
         out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
-        for f in self.filter_features(args.table, args.features):
+        # remove any blank lines
+        table = (line for line in args.table if line.strip())
+        for f in self.filter_features(table, args.features):
             out.writerow(f)
 
 
