@@ -39,7 +39,7 @@ class Ftract(medirect.MEDirect):
                  'feature_key:qualifier_key:qualifier_value.'
                  'ex: rRNA:product:16S')
         parser.add_argument(
-            '-on-error',
+            '-on-error', '--on-error',
             choices=['halt', 'continue'],
             default='continue',
             help='If an exception is encountered in a feature table '
