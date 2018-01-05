@@ -86,7 +86,7 @@ class Test_ftract(unittest.TestCase):
 
     def test09(self):
         with self.assertRaises(ValueError):
-            list(self.ftract.filter_features('invalid', None))
+            list(self.ftract.filter_features('invalid', None, 'halt'))
 
 
 if __name__ == '__main__':

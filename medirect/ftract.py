@@ -15,6 +15,7 @@
 
 import argparse
 import csv
+import logging
 import medirect
 import re
 import sys
@@ -33,10 +34,16 @@ class Ftract(medirect.MEDirect):
             '-feature', '--feature',
             action='append',
             dest='features',
-            help='parse only specific record features in feature '
+            help='Parse only specific record features in feature '
                  'table columns via string pattern '
                  'feature_key:qualifier_key:qualifier_value.'
                  'ex: rRNA:product:16S')
+        parser.add_argument(
+            '-on-error',
+            choices=['halt', 'continue'],
+            default='continue',
+            help='If an exception is encountered in a feature table '
+                 'line encountered halt or continue? [%(default)s]')
         return parser
 
     def coordinates(self, start, stop, strand='1'):
@@ -44,7 +51,7 @@ class Ftract(medirect.MEDirect):
             start, stop, strand = stop, start, '2'
         return start, stop, strand
 
-    def filter_features(self, records, features):
+    def filter_features(self, records, features, on_error='continue'):
         """
         http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html
         Parsing a five column, tab delimited file with a fasta file
@@ -123,15 +130,17 @@ class Ftract(medirect.MEDirect):
                 seqid = match.group('seqid')
                 seq_start, seq_stop = None, None
             else:
-                msg = 'Seqid "{}" contains an invalid feature table line: {}'
-                raise ValueError(msg.format(seqid, line))
+                msg = str(seqid) + ' contains invalid line: ' + line
+                logging.error(msg)
+                if on_error == 'halt':
+                    raise ValueError(msg)
 
     def main(self, args, *other_args):
         out = csv.writer(args.out)
         out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
         # remove any blank lines
         table = (line for line in args.table if line.strip())
-        for f in self.filter_features(table, args.features):
+        for f in self.filter_features(table, args.features, args.on_error):
             out.writerow(f)
 
 
