@@ -13,7 +13,11 @@ RUN apt-get update && apt-get install -y \
     cpanminus \
     libssl-dev
 
-RUN pip3 install awscli boto3 bucket_command_wrapper==0.2.0
+RUN pip3 install \
+    awscli \
+    boto3 \
+    bucket_command_wrapper==0.2.0 \
+    biopython>=1.68
 
 RUN mkdir /src
 WORKDIR /src
@@ -24,11 +28,16 @@ RUN cpanm LWP::Protocol::https
 
 RUN mkdir /logs && mkdir /records
 
-ADD medirect/ftract.py /usr/local/bin/ftract
-ADD medirect/mefetch.py /usr/local/bin/mefetch
+RUN mkdir -p /src/medirect
+WORKDIR /src/
+COPY setup.py /src/setup.py
+COPY medirect/__init__.py /src/medirect/__init__.py
+COPY medirect/mefetch.py /src/medirect/mefetch.py
+COPY medirect/ftract.py /src/medirect/ftract.py
+RUN python3 setup.py install
+
 ADD utils/accession_version.py /usr/local/bin/accession_version
 ADD utils/ncbi_get_nt_accessions_for_query.py /usr/local/bin/ncbi_get_nt_accessions_for_query
-
 RUN chmod +x /usr/local/bin/*
 
 RUN ln -s /usr/bin/python3 /usr/bin/python

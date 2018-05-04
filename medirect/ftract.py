@@ -44,6 +44,11 @@ class Ftract(medirect.MEDirect):
             default='continue',
             help='If an exception is encountered in a feature table '
                  'line encountered halt or continue? [%(default)s]')
+        parser.add_argument(
+            '-full-format', '--full-format',
+            action='store_true',
+            help='If specified, also output the feature, qualifier, and qualifier value'
+        )
         return parser
 
     def coordinates(self, start, stop, strand='1'):
@@ -51,7 +56,7 @@ class Ftract(medirect.MEDirect):
             start, stop, strand = stop, start, '2'
         return start, stop, strand
 
-    def filter_features(self, records, features, on_error='continue'):
+    def filter_features(self, records, features, on_error='continue', full_format=False):
         """
         http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html
         Parsing a five column, tab delimited file with a fasta file
@@ -66,7 +71,6 @@ class Ftract(medirect.MEDirect):
         column 4: qualifier_key
         column 5: qualifier_value
         """
-
         # parse features for columns 3-5
         if features:
             features = [f.split(':') for f in features]
@@ -80,7 +84,7 @@ class Ftract(medirect.MEDirect):
             features = [[x if x else '.' for x in f] for f in features]
             features = ['|'.join(f) for f in features]
         else:
-            features = ['', '', '']
+            features = ['\w+', '\w+', '.+']
 
         feat_key_pattern, qual_key_pattern, qual_val_pattern = features
 
@@ -104,6 +108,7 @@ class Ftract(medirect.MEDirect):
 
         # iterate and match lines
         seqid, seq_start, seq_stop = None, None, None
+        feature = None
 
         for line in records:
             '''
@@ -111,20 +116,28 @@ class Ftract(medirect.MEDirect):
             common line in a feature table.
             '''
             if line.startswith('\t'):
-                if seq_start and seq_stop and re.search(qualifiers, line):
-                    yield (seqid, *self.coordinates(seq_start, seq_stop))
+                qual_match = re.search(qualifiers, line)
+                if seq_start and seq_stop and qual_match:
+                    if full_format:
+                        yield (
+                            seqid,
+                            *self.coordinates(seq_start, seq_stop),
+                            feature,
+                            qual_match.group('qualifier_key'),
+                            qual_match.group('qualifier_value')
+                            )
+                    else:
+                        yield (seqid, *self.coordinates(seq_start, seq_stop))
                     seq_start, seq_stop = None, None
             elif re.search(line1, line):
                 match = re.search(coordinates_feature_key, line)
                 if match:
                     seq_start = int(match.group('seq_start'))
                     seq_stop = int(match.group('seq_stop'))
-                    if not (qual_key_pattern or qual_val_pattern):
-                        # immediately yield if no qualifier patterns
-                        yield (seqid, *self.coordinates(seq_start, seq_stop))
-                        seq_start, seq_stop = None, None
+                    feature = match.group('feature_key')
                 else:
                     seq_start, seq_stop = None, None
+                    feature = None
             elif line.startswith('>Feature'):
                 match = re.search(seqid_line, line)
                 seqid = match.group('seqid')
@@ -137,10 +150,13 @@ class Ftract(medirect.MEDirect):
 
     def main(self, args, *other_args):
         out = csv.writer(args.out)
-        out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
+        if args.full_format:
+            out.writerow(['id', 'seq_start', 'seq_stop', 'strand', 'feature', 'qual', 'qual_value'])
+        else:
+            out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
         # remove any blank lines
         table = (line for line in args.table if line.strip())
-        for f in self.filter_features(table, args.features, args.on_error):
+        for f in self.filter_features(table, args.features, args.on_error, args.full_format):
             out.writerow(f)
 
 
