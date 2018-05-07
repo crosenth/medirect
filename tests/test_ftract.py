@@ -17,7 +17,7 @@ class Test_ftract(unittest.TestCase):
         self.assertEqual(correct, list(results))
 
     def test02(self):
-        correct = [
+        correct = set([
             ('1', 304, 1728, '1'),
             ('1', 1866, 2657, '1'),
             ('1', 2650, 3582, '1'),
@@ -30,14 +30,14 @@ class Test_ftract(unittest.TestCase):
             ('gb|PKKU01000069.1|', 82536, 83733, '2'),
             ('gb|PKKU01000069.1|', 83450, 83733, '2'),
             ('gb|PKKU01000069.1|', 82536, 83451, '2'),
-            ('gb|PKKU01000069.1|', 83959, 84030, '1')]
+            ('gb|PKKU01000069.1|', 83959, 84030, '1')])
         results = self.ftract.filter_features(self.data, ['::'])
-        self.assertEqual(correct, list(results))
+        self.assertEqual(correct, set(results))
 
     def test03(self):
-        correct = [('1', 223523, 225078, '2'), ('629', 150, 1687, '1')]
+        correct = set([('1', 223523, 225078, '2'), ('629', 150, 1687, '1')])
         results = self.ftract.filter_features(self.data, ['rrna::'])
-        self.assertEqual(correct, list(results))
+        self.assertEqual(correct, set(results))
 
     def test04(self):
         correct = [
@@ -56,7 +56,7 @@ class Test_ftract(unittest.TestCase):
         self.assertEqual(correct, list(results))
 
     def test05(self):
-        correct = [
+        correct = set([
             ('1', 304, 1728, '1'),
             ('1', 1866, 2657, '1'),
             ('1', 2650, 3582, '1'),
@@ -69,9 +69,9 @@ class Test_ftract(unittest.TestCase):
             ('gb|PKKU01000069.1|', 82536, 83733, '2'),
             ('gb|PKKU01000069.1|', 83450, 83733, '2'),
             ('gb|PKKU01000069.1|', 82536, 83451, '2'),
-            ('gb|PKKU01000069.1|', 83959, 84030, '1')]
+            ('gb|PKKU01000069.1|', 83959, 84030, '1')])
         results = self.ftract.filter_features(self.data, None)
-        self.assertEqual(correct, list(results))
+        self.assertEqual(correct, set(results))
 
     def test06(self):
         correct = [('1', 3560, 3769, '1')]

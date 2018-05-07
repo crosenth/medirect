@@ -71,6 +71,7 @@ class Ftract(medirect.MEDirect):
         column 4: qualifier_key
         column 5: qualifier_value
         """
+
         # parse features for columns 3-5
         if features:
             features = [f.split(':') for f in features]
@@ -84,7 +85,7 @@ class Ftract(medirect.MEDirect):
             features = [[x if x else '.' for x in f] for f in features]
             features = ['|'.join(f) for f in features]
         else:
-            features = ['\w+', '\w+', '.+']
+            features = ['', '', '']
 
         feat_key_pattern, qual_key_pattern, qual_val_pattern = features
 
@@ -94,6 +95,11 @@ class Ftract(medirect.MEDirect):
         column3 = '.*?(?P<feature_key>{})+.*?'.format(feat_key_pattern)
         column4 = '.*?(?P<qualifier_key>{})+.*?'.format(qual_key_pattern)
         column5 = '.*?(?P<qualifier_value>{})+.*?'.format(qual_val_pattern)
+
+        # Universal extractors
+        column3_uni = '.*?(?P<feature_key>\w+).*?'
+        column4_uni = '.*?(?P<qualifier_key>\w+).*?'
+        column5_uni = '.*?(?P<qualifier_value>.+).*?'
 
         # general line1 coordinates pattern
         line1 = re.compile('^{}\t{}'.format(column1, column2))
@@ -106,42 +112,65 @@ class Ftract(medirect.MEDirect):
         qualifiers = re.compile(
             '^\t\t\t{}\t{}'.format(column4, column5), re.IGNORECASE)
 
+        qualifiers_uni = re.compile(
+            '^\t\t\t{}\t{}'.format(column4_uni, column5_uni), re.IGNORECASE)
+        coordinates_feature_uni = re.compile(
+            '^{}\t{}\t{}'.format(column1, column2, column3_uni), re.IGNORECASE)
+
         # iterate and match lines
         seqid, seq_start, seq_stop = None, None, None
-        feature = None
-
+        feature, qual, qual_value = None, None, None
         for line in records:
             '''
             Match for line2 first because that is the most
             common line in a feature table.
             '''
             if line.startswith('\t'):
-                qual_match = re.search(qualifiers, line)
-                if seq_start and seq_stop and qual_match:
+                if seq_start and seq_stop and re.search(qualifiers, line):
                     if full_format:
-                        yield (
+                        qual_match = qualifiers_uni.search(line)
+                        qual = qual_match.group('qualifier_key')
+                        qual_value = qual_match.group('qualifier_value')
+                        yield(
                             seqid,
                             *self.coordinates(seq_start, seq_stop),
                             feature,
-                            qual_match.group('qualifier_key'),
-                            qual_match.group('qualifier_value')
-                            )
+                            qual,
+                            qual_value
+                        )
                     else:
                         yield (seqid, *self.coordinates(seq_start, seq_stop))
-                    seq_start, seq_stop = None, None
+                    qual, qual_value = None, None
             elif re.search(line1, line):
                 match = re.search(coordinates_feature_key, line)
+                feature, qual, qual_value = None, None, None
                 if match:
                     seq_start = int(match.group('seq_start'))
                     seq_stop = int(match.group('seq_stop'))
-                    feature = match.group('feature_key')
+                    if full_format:
+                        uni_match = coordinates_feature_uni.search(line)
+                        if uni_match:
+                            feature = uni_match.group('feature_key')
+                            yield(
+                                seqid,
+                                *self.coordinates(seq_start, seq_stop),
+                                feature,
+                                qual,
+                                qual_value
+                            )
+                        else:
+                            feature = None
+                    elif not (qual_key_pattern or qual_val_pattern):
+                        # immediately yield if no qualifier patterns
+                        yield (seqid, *self.coordinates(seq_start, seq_stop))
+                        seq_start, seq_stop = None, None
                 else:
                     seq_start, seq_stop = None, None
-                    feature = None
             elif line.startswith('>Feature'):
                 match = re.search(seqid_line, line)
                 seqid = match.group('seqid')
                 seq_start, seq_stop = None, None
+                feature, qual, qual_value = None, None, None
             else:
                 msg = str(seqid) + ' contains invalid line: ' + line
                 logging.error(msg)
