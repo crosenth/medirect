@@ -44,6 +44,11 @@ class Ftract(medirect.MEDirect):
             default='continue',
             help='If an exception is encountered in a feature table '
                  'line encountered halt or continue? [%(default)s]')
+        parser.add_argument(
+            '-full-format', '--full-format',
+            action='store_true',
+            help='If specified, also output the feature, qualifier, and qualifier value'
+        )
         return parser
 
     def coordinates(self, start, stop, strand='1'):
@@ -51,7 +56,7 @@ class Ftract(medirect.MEDirect):
             start, stop, strand = stop, start, '2'
         return start, stop, strand
 
-    def filter_features(self, records, features, on_error='continue'):
+    def filter_features(self, records, features, on_error='continue', full_format=False):
         """
         http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html
         Parsing a five column, tab delimited file with a fasta file
@@ -91,6 +96,11 @@ class Ftract(medirect.MEDirect):
         column4 = '.*?(?P<qualifier_key>{})+.*?'.format(qual_key_pattern)
         column5 = '.*?(?P<qualifier_value>{})+.*?'.format(qual_val_pattern)
 
+        # Universal extractors
+        column3_uni = '.*?(?P<feature_key>\w+).*?'
+        column4_uni = '.*?(?P<qualifier_key>\w+).*?'
+        column5_uni = '.*?(?P<qualifier_value>.+).*?'
+
         # general line1 coordinates pattern
         line1 = re.compile('^{}\t{}'.format(column1, column2))
 
@@ -102,9 +112,14 @@ class Ftract(medirect.MEDirect):
         qualifiers = re.compile(
             '^\t\t\t{}\t{}'.format(column4, column5), re.IGNORECASE)
 
+        qualifiers_uni = re.compile(
+            '^\t\t\t{}\t{}'.format(column4_uni, column5_uni), re.IGNORECASE)
+        coordinates_feature_uni = re.compile(
+            '^{}\t{}\t{}'.format(column1, column2, column3_uni), re.IGNORECASE)
+
         # iterate and match lines
         seqid, seq_start, seq_stop = None, None, None
-
+        feature, qual, qual_value = None, None, None
         for line in records:
             '''
             Match for line2 first because that is the most
@@ -112,14 +127,40 @@ class Ftract(medirect.MEDirect):
             '''
             if line.startswith('\t'):
                 if seq_start and seq_stop and re.search(qualifiers, line):
-                    yield (seqid, *self.coordinates(seq_start, seq_stop))
-                    seq_start, seq_stop = None, None
+                    if full_format:
+                        qual_match = qualifiers_uni.search(line)
+                        qual = qual_match.group('qualifier_key')
+                        qual_value = qual_match.group('qualifier_value')
+                        yield(
+                            seqid,
+                            *self.coordinates(seq_start, seq_stop),
+                            feature,
+                            qual,
+                            qual_value
+                        )
+                    else:
+                        yield (seqid, *self.coordinates(seq_start, seq_stop))
+                    qual, qual_value = None, None
             elif re.search(line1, line):
                 match = re.search(coordinates_feature_key, line)
+                feature, qual, qual_value = None, None, None
                 if match:
                     seq_start = int(match.group('seq_start'))
                     seq_stop = int(match.group('seq_stop'))
-                    if not (qual_key_pattern or qual_val_pattern):
+                    if full_format:
+                        uni_match = coordinates_feature_uni.search(line)
+                        if uni_match:
+                            feature = uni_match.group('feature_key')
+                            yield(
+                                seqid,
+                                *self.coordinates(seq_start, seq_stop),
+                                feature,
+                                qual,
+                                qual_value
+                            )
+                        else:
+                            feature = None
+                    elif not (qual_key_pattern or qual_val_pattern):
                         # immediately yield if no qualifier patterns
                         yield (seqid, *self.coordinates(seq_start, seq_stop))
                         seq_start, seq_stop = None, None
@@ -129,6 +170,7 @@ class Ftract(medirect.MEDirect):
                 match = re.search(seqid_line, line)
                 seqid = match.group('seqid')
                 seq_start, seq_stop = None, None
+                feature, qual, qual_value = None, None, None
             else:
                 msg = str(seqid) + ' contains invalid line: ' + line
                 logging.error(msg)
@@ -137,10 +179,13 @@ class Ftract(medirect.MEDirect):
 
     def main(self, args, *other_args):
         out = csv.writer(args.out)
-        out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
+        if args.full_format:
+            out.writerow(['id', 'seq_start', 'seq_stop', 'strand', 'feature', 'qual', 'qual_value'])
+        else:
+            out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
         # remove any blank lines
         table = (line for line in args.table if line.strip())
-        for f in self.filter_features(table, args.features, args.on_error):
+        for f in self.filter_features(table, args.features, args.on_error, args.full_format):
             out.writerow(f)
 
 
