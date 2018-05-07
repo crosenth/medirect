@@ -1,6 +1,6 @@
 # golob/medirect
 #
-# VERSION               0.8.0_BCW_0.2.0
+# VERSION               0.9.0_BCW_0.2.0
 
 FROM      ubuntu:16.04
 RUN mkdir /fh
