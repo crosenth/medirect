@@ -21,6 +21,8 @@ import sys
 
 
 class MEDirect:
+    TOOL = 'medirect'
+
     def __init__(self, testing=None):
         if testing is None:
             parser = self.add_arguments(self.arg_parser())
