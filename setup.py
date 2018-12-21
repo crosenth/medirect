@@ -16,7 +16,7 @@ setuptools.setup(
         'console_scripts': [
             'mefetch=medirect.mefetch:run',
             'ftract= medirect.ftract:run']},
-    version='0.9.0',
+    version='0.10.0',
     url='https://github.com/crosenth/medirect',
     license='GPLv3',
     install_requires=['biopython>=1.68', 'retrying>=1.3.3'],
