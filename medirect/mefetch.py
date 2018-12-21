@@ -152,7 +152,7 @@ class MEFetch(medirect.MEDirect):
             if args.api_key is None:
                 proc = 3
             else:
-                proc = 5  # -api-key allows 5 reqs/sec
+                proc = 10  # -api-key allows 10 reqs/sec
         else:
             proc = args.proc
 
