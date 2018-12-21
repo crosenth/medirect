@@ -170,6 +170,7 @@ class MEFetch(medirect.MEDirect):
             for r in results:
                 # remove blank lines and append a single newline
                 r = '\n'.join(l for l in r.split('\n') if l.strip()) + '\n'
+                args.out.write(r)
 
 
 def liststr(l):
@@ -210,6 +211,7 @@ def efetch(retry, max_retry, chunks, **args):
     Wrap Entrez.efetch with some http exception retrying.
     This function must stay alive for at least 1 second.
     """
+    time.sleep(1)  # force this function to last at least 1 second
 
     def print_retry_message(exception):
         """
@@ -233,9 +235,7 @@ def efetch(retry, max_retry, chunks, **args):
         db = args.pop('db')
         return Entrez.efetch(db, **args).read()
 
-    r = rfetch(chunks, **args)
-    time.sleep(1)  # force 1 second no matter what
-    return r
+    return rfetch(chunks, **args)
 
 
 def chunker(iterable, n):
