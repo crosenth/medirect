@@ -47,7 +47,8 @@ class Ftract(medirect.MEDirect):
         parser.add_argument(
             '-full-format', '--full-format',
             action='store_true',
-            help='If specified, also output the feature, qualifier, and qualifier value'
+            help=('If specified, also output the '
+                  'feature, qualifier, and qualifier value')
         )
         return parser
 
@@ -56,7 +57,8 @@ class Ftract(medirect.MEDirect):
             start, stop, strand = stop, start, '2'
         return start, stop, strand
 
-    def filter_features(self, records, features, on_error='continue', full_format=False):
+    def filter_features(self, records, features,
+                        on_error='continue', full_format=False):
         """
         http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html
         Parsing a five column, tab delimited file with a fasta file
@@ -81,8 +83,9 @@ class Ftract(medirect.MEDirect):
                     msg = str(f) + ' is not a valid feature argument'
                     raise argparse.ArgumentTypeError(msg)
             features = zip(*features)
+            # any empty feature overrides all other features
             features = ['' if '' in f else f for f in features]
-            features = [[x if x else '.' for x in f] for f in features]
+            features = [set(x.lower() for x in f) for f in features]
             features = ['|'.join(f) for f in features]
         else:
             features = ['', '', '']
@@ -90,32 +93,21 @@ class Ftract(medirect.MEDirect):
         feat_key_pattern, qual_key_pattern, qual_val_pattern = features
 
         # general patterns for all 5 feature table columns
-        column1 = '\D?(?P<seq_start>\d+)'
-        column2 = '\D?(?P<seq_stop>\d+)'
-        column3 = '.*?(?P<feature_key>{})+.*?'.format(feat_key_pattern)
-        column4 = '.*?(?P<qualifier_key>{})+.*?'.format(qual_key_pattern)
-        column5 = '.*?(?P<qualifier_value>{})+.*?'.format(qual_val_pattern)
-
-        # Universal extractors
-        column3_uni = '.*?(?P<feature_key>\w+).*?'
-        column4_uni = '.*?(?P<qualifier_key>\w+).*?'
-        column5_uni = '.*?(?P<qualifier_value>.+).*?'
+        column1 = '[<>]?(?P<seq_start>\d+)'
+        column2 = '[<>]?(?P<seq_stop>\d+)'
+        column3 = '(?P<feature_key>{})'.format(feat_key_pattern or '.*')
+        column4 = '(?P<qualifier_key>{})'.format(qual_key_pattern or '.*')
+        column5 = '(?P<qualifier_value>{})'.format(qual_val_pattern or '.*')
 
         # general line1 coordinates pattern
         line1 = re.compile('^{}\t{}'.format(column1, column2))
 
         # these three patterns look for features passed by user
-        seqid_line = re.compile(
-            '^>Feature (?P<seqid>\S*)', re.IGNORECASE)
+        seqid_line = re.compile('^>Feature (?P<seqid>\S*)', re.IGNORECASE)
         coordinates_feature_key = re.compile(
             '^{}\t{}\t?{}'.format(column1, column2, column3), re.IGNORECASE)
         qualifiers = re.compile(
             '^\t\t\t{}\t{}'.format(column4, column5), re.IGNORECASE)
-
-        qualifiers_uni = re.compile(
-            '^\t\t\t{}\t{}'.format(column4_uni, column5_uni), re.IGNORECASE)
-        coordinates_feature_uni = re.compile(
-            '^{}\t{}\t{}'.format(column1, column2, column3_uni), re.IGNORECASE)
 
         # iterate and match lines
         seqid, seq_start, seq_stop = None, None, None
@@ -128,7 +120,7 @@ class Ftract(medirect.MEDirect):
             if line.startswith('\t'):
                 if seq_start and seq_stop and re.search(qualifiers, line):
                     if full_format:
-                        qual_match = qualifiers_uni.search(line)
+                        qual_match = qualifiers.search(line)
                         qual = qual_match.group('qualifier_key')
                         qual_value = qual_match.group('qualifier_value')
                         yield(
@@ -147,20 +139,8 @@ class Ftract(medirect.MEDirect):
                 if match:
                     seq_start = int(match.group('seq_start'))
                     seq_stop = int(match.group('seq_stop'))
-                    if full_format:
-                        uni_match = coordinates_feature_uni.search(line)
-                        if uni_match:
-                            feature = uni_match.group('feature_key')
-                            yield(
-                                seqid,
-                                *self.coordinates(seq_start, seq_stop),
-                                feature,
-                                qual,
-                                qual_value
-                            )
-                        else:
-                            feature = None
-                    elif not (qual_key_pattern or qual_val_pattern):
+                    feature = match.group('feature_key')
+                    if not (qual_key_pattern or qual_val_pattern):
                         # immediately yield if no qualifier patterns
                         yield (seqid, *self.coordinates(seq_start, seq_stop))
                         seq_start, seq_stop = None, None
@@ -180,12 +160,15 @@ class Ftract(medirect.MEDirect):
     def main(self, args, *other_args):
         out = csv.writer(args.out)
         if args.full_format:
-            out.writerow(['id', 'seq_start', 'seq_stop', 'strand', 'feature', 'qual', 'qual_value'])
+            out.writerow(['id', 'seq_start', 'seq_stop', 'strand',
+                          'feature', 'qual', 'qual_value'])
         else:
             out.writerow(['id', 'seq_start', 'seq_stop', 'strand'])
         # remove any blank lines
         table = (line for line in args.table if line.strip())
-        for f in self.filter_features(table, args.features, args.on_error, args.full_format):
+        ff = self.filter_features(
+            table, args.features, args.on_error, args.full_format)
+        for f in ff:
             out.writerow(f)
 
 
