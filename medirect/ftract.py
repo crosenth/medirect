@@ -39,17 +39,20 @@ class Ftract(medirect.MEDirect):
                  'feature_key:qualifier_key:qualifier_value.'
                  'ex: rRNA:product:16S')
         parser.add_argument(
+            '-full-format', '--full-format',
+            action='store_true',
+            help=('If specified, also output the '
+                  'feature, qualifier, and qualifier value'))
+        parser.add_argument(
+            '-min-length', '--min-length',
+            type=int,
+            help='Minimum sequence length to parse feature')
+        parser.add_argument(
             '-on-error', '--on-error',
             choices=['halt', 'continue'],
             default='continue',
             help='If an exception is encountered in a feature table '
                  'line encountered halt or continue? [%(default)s]')
-        parser.add_argument(
-            '-full-format', '--full-format',
-            action='store_true',
-            help=('If specified, also output the '
-                  'feature, qualifier, and qualifier value')
-        )
         return parser
 
     def coordinates(self, start, stop, strand='1'):
@@ -57,8 +60,8 @@ class Ftract(medirect.MEDirect):
             start, stop, strand = stop, start, '2'
         return start, stop, strand
 
-    def filter_features(self, records, features,
-                        on_error='continue', full_format=False):
+    def filter_features(
+            self, records, features, on_error, full_format, min_length):
         """
         http://www.ncbi.nlm.nih.gov/projects/Sequin/table.html
         Parsing a five column, tab delimited file with a fasta file
@@ -128,8 +131,7 @@ class Ftract(medirect.MEDirect):
                             *self.coordinates(seq_start, seq_stop),
                             feature,
                             qual,
-                            qual_value
-                        )
+                            qual_value)
                     else:
                         yield (seqid, *self.coordinates(seq_start, seq_stop))
                     qual, qual_value = None, None
@@ -139,10 +141,16 @@ class Ftract(medirect.MEDirect):
                 if match:
                     seq_start = int(match.group('seq_start'))
                     seq_stop = int(match.group('seq_stop'))
-                    feature = match.group('feature_key')
-                    if not (qual_key_pattern or qual_val_pattern):
-                        # immediately yield if no qualifier patterns
-                        yield (seqid, *self.coordinates(seq_start, seq_stop))
+                    if (min_length is None or
+                            seq_stop - seq_start >= min_length):
+                        feature = match.group('feature_key')
+                        if not (qual_key_pattern or qual_val_pattern):
+                            # immediately yield if no qualifier patterns
+                            yield (
+                                seqid,
+                                *self.coordinates(seq_start, seq_stop))
+                            seq_start, seq_stop = None, None
+                    else:
                         seq_start, seq_stop = None, None
                 else:
                     seq_start, seq_stop = None, None
@@ -167,7 +175,11 @@ class Ftract(medirect.MEDirect):
         # remove any blank lines
         table = (line for line in args.table if line.strip())
         ff = self.filter_features(
-            table, args.features, args.on_error, args.full_format)
+            table,
+            args.features,
+            args.on_error,
+            args.full_format,
+            args.min_length)
         for f in ff:
             out.writerow(f)
 
