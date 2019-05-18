@@ -142,7 +142,7 @@ class Ftract(medirect.MEDirect):
                     seq_start = int(match.group('seq_start'))
                     seq_stop = int(match.group('seq_stop'))
                     if (min_length is None or
-                            seq_stop - seq_start >= min_length):
+                            abs(seq_stop - seq_start) >= min_length):
                         feature = match.group('feature_key')
                         if not (qual_key_pattern or qual_val_pattern):
                             # immediately yield if no qualifier patterns
