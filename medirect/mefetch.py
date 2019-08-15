@@ -12,7 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with medirect.  If not, see <http://www.gnu.org/licenses/>
-
 import csv
 import functools
 import itertools
@@ -22,6 +21,7 @@ import multiprocessing
 import os
 import retrying
 import sys
+import time
 
 from Bio import Entrez
 from html.parser import HTMLParser
@@ -35,6 +35,9 @@ class MEFetch(medirect.MEDirect):
             '-email', '--email',
             required=True,
             help="The name of the run")
+        parser.add_argument(
+            '-api-key', '--api-key',
+            help="api key to increase requests/second rate to 10")
         parser.add_argument(
             '-debug', '--debug',
             action='store_true',
@@ -78,10 +81,10 @@ class MEFetch(medirect.MEDirect):
                   'continuous retrying.'))
         proc_group.add_argument(
             '-proc', '--proc',
-            default=3,
             metavar='INT',
             type=int,
-            help='Number of available processors [%(default)s]')
+            help=('Number of available processors '
+                  'available for requests [3].'))
         proc_group.add_argument(
             '-retmax', '--retmax',
             metavar='INT',
@@ -100,6 +103,8 @@ class MEFetch(medirect.MEDirect):
 
     def main(self, args, *unknown_args):
         Entrez.email = args.email
+        Entrez.tool = self.TOOL
+        Entrez.api_key = args.api_key
 
         # zip unknown args to be passed as general efetch args
         unknown_args = [a.strip('-') for a in unknown_args]
@@ -143,22 +148,29 @@ class MEFetch(medirect.MEDirect):
         if args.mode:
             base_args.update(retmode=args.mode)
 
+        if args.proc is None:
+            if args.api_key is None:
+                proc = 3
+            else:
+                proc = 10  # -api-key allows 10 reqs/sec
+        else:
+            proc = args.proc
+
         efetches = functools.partial(
             efetch, args.retry, args.max_retry, **base_args)
 
-        pool = multiprocessing.Pool(processes=args.proc)
+        with multiprocessing.Pool(processes=proc) as pool:
+            if args.in_order:
+                results = pool.imap(efetches, chunks)
+            elif args.debug:
+                results = map(efetches, chunks)
+            else:
+                results = pool.imap_unordered(efetches, chunks)
 
-        if args.in_order:
-            results = pool.imap(efetches, chunks)
-        elif args.debug:
-            results = map(efetches, chunks)
-        else:
-            results = pool.imap_unordered(efetches, chunks)
-
-        for r in results:
-            # remove blank lines and append a single newline
-            r = '\n'.join(l for l in r.split('\n') if l.strip()) + '\n'
-            args.out.write(r)
+            for r in results:
+                # remove blank lines and append a single newline
+                r = '\n'.join(l for l in r.split('\n') if l.strip()) + '\n'
+                args.out.write(r)
 
 
 def liststr(l):
@@ -196,8 +208,10 @@ def edirect_pprint(**kwds):
 
 def efetch(retry, max_retry, chunks, **args):
     """
-    Wrap Entrez.efetch with some http exception retrying
+    Wrap Entrez.efetch with some http exception retrying.
+    This function must stay alive for at least 1 second.
     """
+    time.sleep(1)  # force this function to last at least 1 second
 
     def print_retry_message(exception):
         """

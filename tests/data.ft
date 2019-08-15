@@ -1,12 +1,12 @@
 >Feature 0
 >Feature 1
-304	1728	CDS
+<304	1728	CDS
 			gene	trkG
 			inference	ab initio prediction:Prodigal:2.6
 			inference	similar to AA sequence:UniProtKB:P23849
 			locus_tag	OJPFPCPC_00001
 			product	Trk system potassium uptake protein TrkG
-1866	2657	CDS
+1866	>2657	CDS
 			inference	ab initio prediction:Prodigal:2.6
 			locus_tag	OJPFPCPC_00002
 			product	hypothetical protein
