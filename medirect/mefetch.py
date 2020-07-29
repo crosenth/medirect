@@ -20,6 +20,7 @@ import medirect
 import multiprocessing
 import os
 import retrying
+import socket
 import sys
 import time
 
@@ -99,6 +100,12 @@ class MEFetch(medirect.MEDirect):
             default=60000,
             help=('Number of milliseconds to wait '
                   'between -max-retry(ies) [%(default)s]'))
+        proc_group.add_argument(
+            '-timeout', '--timeout',
+            metavar='SECONDS',
+            type=float,
+            help=('Number of seconds to wait for a '
+                  'response before retrying'))
         return parser
 
     def main(self, args, *unknown_args):
@@ -155,6 +162,9 @@ class MEFetch(medirect.MEDirect):
                 proc = 10  # -api-key allows 10 reqs/sec
         else:
             proc = args.proc
+
+        if args.timeout:
+            socket.setdefaulttimeout(args.timeout)
 
         efetches = functools.partial(
             efetch, args.retry, args.max_retry, **base_args)
@@ -220,7 +230,7 @@ def efetch(retry, max_retry, chunks, **args):
         """
         seconds = float(retry) / 1000
         msg = '{}, retrying in {} seconds... {} max retry(ies)'.format(
-            exception, seconds, max_retry or 'no')
+            repr(exception), seconds, max_retry or 'no')
         logging.error(msg)
         return True
 
