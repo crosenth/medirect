@@ -179,25 +179,25 @@ class MEFetch(medirect.MEDirect):
 
             for r in results:
                 # remove blank lines and append a single newline
-                r = '\n'.join(l for l in r.split('\n') if l.strip()) + '\n'
+                r = '\n'.join(li for li in r.split('\n') if li.strip()) + '\n'
                 args.out.write(r)
 
 
-def liststr(l):
+def liststr(ls):
     """
     Concise string representation of iteratable
     """
 
     s = None
-    if hasattr(l, '__iter__') and not isinstance(l, str):
-        if len(l) == 0:
+    if hasattr(ls, '__iter__') and not isinstance(ls, str):
+        if len(ls) == 0:
             s = 'None'
-        elif len(l) == 1:
-            s = str(l[0])
+        elif len(ls) == 1:
+            s = str(ls[0])
         else:
-            s = '{}...{}'.format(l[0], l[-1])
+            s = '{}...{}'.format(ls[0], ls[-1])
     else:
-        s = l
+        s = ls
     return s
 
 
