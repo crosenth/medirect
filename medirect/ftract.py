@@ -166,6 +166,7 @@ class Ftract(medirect.MEDirect):
                     raise ValueError(msg)
 
     def main(self, args, *other_args):
+        self.setup_logging()
         out = csv.writer(args.out)
         if args.full_format:
             out.writerow(['id', 'seq_start', 'seq_stop', 'strand',

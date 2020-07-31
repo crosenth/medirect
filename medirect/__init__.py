@@ -27,7 +27,8 @@ class MEDirect:
         if testing is None:
             parser = self.add_arguments(self.arg_parser())
             args, other_args = parser.parse_known_args()
-            self.setup_logging(args.log, args.verbosity)
+            self.log = args.log
+            self.verbosity = args.verbosity
             self.main(args, *other_args)
 
     def add_arguments(self, parser):
@@ -42,8 +43,6 @@ class MEDirect:
         parser.add_argument(
             '-log', '--log',
             metavar='FILE',
-            default=sys.stderr,
-            type=argparse.FileType('a'),  # append
             help='Send logging to a file')
         parser.add_argument(
             '-v', '--verbose',
@@ -64,22 +63,26 @@ class MEDirect:
         raise NotImplementedError(
             'main must be implemented when extending MEDirect')
 
-    def setup_logging(self, log, verbosity):
+    def setup_logging(self):
         """
         setup global logging
         """
+        if self.log:
+            logfile = open(self.log, 'a')
+        else:
+            logfile = sys.stderr
 
         loglevel = {
             0: logging.ERROR,
             1: logging.WARNING,
             2: logging.INFO,
             3: logging.DEBUG,
-        }.get(verbosity, logging.DEBUG)
+        }.get(self.verbosity, logging.DEBUG)
 
         log_format = ('%(asctime)s %(levelname)s %(lineno)s %(message)s')
 
         logging.basicConfig(
-            stream=log,
+            stream=logfile,
             format=log_format,
             level=loglevel,
             datefmt='%Y-%m-%d %H:%M:%S')

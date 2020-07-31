@@ -108,10 +108,48 @@ class MEFetch(medirect.MEDirect):
                   'response before retrying'))
         return parser
 
-    def main(self, args, *unknown_args):
-        Entrez.email = args.email
+    def efetch(self, retry, max_retry, chunks, **args):
+        """
+        Wrap Entrez.efetch with some http exception retrying.
+        This function must stay alive for at least 1 second.
+        """
+        time.sleep(1)  # force this function to last at least 1 second
+
+        # global vars must be set here to work with spawn processes
+        Entrez.email = self.email
         Entrez.tool = self.TOOL
-        Entrez.api_key = args.api_key
+        Entrez.api_key = self.api_key
+        self.setup_logging()
+
+        def print_retry_message(exception):
+            """
+            http exceptions:
+                http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+            retrying api:
+                https://pypi.python.org/pypi/retrying
+            """
+            seconds = float(retry) / 1000
+            msg = '{}, retrying in {} seconds... {} max retry(ies)'.format(
+                repr(exception), seconds, max_retry or 'no')
+            logging.error(msg)
+            return True
+
+        @retrying.retry(
+            retry_on_exception=print_retry_message,
+            wait_fixed=retry,
+            stop_max_attempt_number=max_retry)
+        def rfetch(chunk, **args):
+            pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
+            logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
+            args.update(**chunk)
+            db = args.pop('db')
+            return Entrez.efetch(db, **args).read()
+
+        return rfetch(chunks, **args)
+
+    def main(self, args, *unknown_args):
+        self.email = args.email
+        self.api_key = args.api_key
 
         # zip unknown args to be passed as general efetch args
         unknown_args = [a.strip('-') for a in unknown_args]
@@ -167,9 +205,9 @@ class MEFetch(medirect.MEDirect):
             socket.setdefaulttimeout(args.timeout)
 
         efetches = functools.partial(
-            efetch, args.retry, args.max_retry, **base_args)
+            self.efetch, args.retry, args.max_retry, **base_args)
 
-        with multiprocessing.Pool(processes=proc) as pool:
+        with multiprocessing.get_context('spawn').Pool(processes=proc) as pool:
             if args.in_order:
                 results = pool.imap(efetches, chunks)
             elif args.debug:
@@ -216,38 +254,6 @@ def edirect_pprint(**kwds):
     return ' '.join(info)
 
 
-def efetch(retry, max_retry, chunks, **args):
-    """
-    Wrap Entrez.efetch with some http exception retrying.
-    This function must stay alive for at least 1 second.
-    """
-    time.sleep(1)  # force this function to last at least 1 second
-
-    def print_retry_message(exception):
-        """
-        http exceptions: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-        retrying api: https://pypi.python.org/pypi/retrying
-        """
-        seconds = float(retry) / 1000
-        msg = '{}, retrying in {} seconds... {} max retry(ies)'.format(
-            repr(exception), seconds, max_retry or 'no')
-        logging.error(msg)
-        return True
-
-    @retrying.retry(
-        retry_on_exception=print_retry_message,
-        wait_fixed=retry,
-        stop_max_attempt_number=max_retry)
-    def rfetch(chunk, **args):
-        pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
-        logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
-        args.update(**chunk)
-        db = args.pop('db')
-        return Entrez.efetch(db, **args).read()
-
-    return rfetch(chunks, **args)
-
-
 def chunker(iterable, n):
     """
     Continuously chunk an iterator n items at a time
@@ -286,4 +292,5 @@ def parse_edirect(text):
 
 
 def run():
+    multiprocessing.set_start_method('spawn')
     MEFetch()
