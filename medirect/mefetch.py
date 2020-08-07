@@ -128,9 +128,13 @@ class MEFetch(medirect.MEDirect):
             retrying api:
                 https://pypi.python.org/pypi/retrying
             """
+            if len(exception.ids) > 25:
+                ids = ', '.join(exception.ids[:3]) + '...'
+            else:
+                ids = ', '.join(exception.ids)
             seconds = float(retry) / 1000
-            msg = '{}, retrying in {} seconds... {} max retry(ies)'.format(
-                repr(exception), seconds, max_retry or 'no')
+            msg = '[{}] {}, retrying in {} seconds... {} max retry(ies)'
+            msg = msg.format(ids, repr(exception), seconds, max_retry or 'no')
             logging.error(msg)
             return True
 
@@ -143,7 +147,11 @@ class MEFetch(medirect.MEDirect):
             logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
             args.update(**chunk)
             db = args.pop('db')
-            return Entrez.efetch(db, **args).read()
+            try:
+                return Entrez.efetch(db, **args).read()
+            except Exception as exception:
+                exception.ids = chunk['id']
+                raise exception
 
         return rfetch(chunks, **args)
 
