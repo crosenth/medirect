@@ -133,7 +133,7 @@ class MEFetch(medirect.MEDirect):
             else:
                 ids = ', '.join(exception.ids)
             seconds = float(retry) / 1000
-            msg = '[{}] {}, retrying in {} seconds... {} max retry(ies)'
+            msg = '{} {}, retrying in {} seconds... {} max retry(ies)'
             msg = msg.format(ids, repr(exception), seconds, max_retry or 'no')
             logging.error(msg)
             return True
@@ -150,7 +150,7 @@ class MEFetch(medirect.MEDirect):
             try:
                 return Entrez.efetch(db, **args).read()
             except Exception as exception:
-                exception.ids = chunk['id']
+                exception.ids = chunk.get('id', [])
                 raise exception
 
         return rfetch(chunks, **args)
