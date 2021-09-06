@@ -148,11 +148,13 @@ class MEFetch(medirect.MEDirect):
             args.update(**chunk)
             db = args.pop('db')
             try:
-                return Entrez.efetch(db, **args).read()
+                result = Entrez.efetch(db, **args).read()
+                if isinstance(result, bytes):
+                    raise TypeError(result.decode())
+                return result
             except Exception as exception:
                 exception.ids = chunk.get('id', [])
                 raise exception
-
         return rfetch(chunks, **args)
 
     def main(self, args, *unknown_args):
