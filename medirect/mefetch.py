@@ -138,10 +138,12 @@ class MEFetch(medirect.MEDirect):
             logging.error(msg)
             return True
 
+        tries = None if max_retry is None else 1 + max_retry
+
         @retrying.retry(
             retry_on_exception=print_retry_message,
             wait_fixed=retry,
-            stop_max_attempt_number=1 + max_retry)
+            stop_max_attempt_number=tries)
         def rfetch(chunk, **args):
             pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
             logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
