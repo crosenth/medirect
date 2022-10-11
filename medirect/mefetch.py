@@ -145,18 +145,25 @@ class MEFetch(medirect.MEDirect):
             wait_fixed=retry,
             stop_max_attempt_number=tries)
         def rfetch(chunk, **args):
-            pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
-            logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
-            args.update(**chunk)
-            db = args.pop('db')
-            try:
-                result = Entrez.efetch(db, **args).read()
-                if isinstance(result, bytes):
-                    raise TypeError(result.decode())
-                return result
-            except Exception as exception:
-                exception.ids = chunk.get('id', [])
-                raise exception
+            if chunk:
+                pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
+                logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
+                args.update(**chunk)
+                db = args.pop('db')
+                try:
+                    result = Entrez.efetch(db, **args).read()
+                    if args['retmode'] == 'text' and isinstance(result, bytes):
+                        msg = 'text requested but bytes were returned'
+                        raise TypeError(msg)
+                    elif args['retmode'] == 'xml' and isinstance(result, str):
+                        msg = 'xml requested but str was returned'
+                        raise TypeError(msg)
+                    if isinstance(result, bytes):
+                        result = result.decode()
+                    return result
+                except Exception as exception:
+                    exception.ids = chunk.get('id', [])
+                    raise exception
         return rfetch(chunks, **args)
 
     def main(self, args, *unknown_args):
@@ -213,6 +220,9 @@ class MEFetch(medirect.MEDirect):
         else:
             proc = args.proc
 
+        # creates a stagger start, see time.sleep with empty chunk
+        chunks = itertools.chain(stagger(chunks, args.proc), chunks)
+
         if args.timeout:
             socket.setdefaulttimeout(args.timeout)
 
@@ -228,9 +238,12 @@ class MEFetch(medirect.MEDirect):
                 results = pool.imap_unordered(efetches, chunks)
 
             for r in results:
-                # remove blank lines and append a single newline
-                r = '\n'.join(li for li in r.split('\n') if li.strip()) + '\n'
-                args.out.write(r)
+                if r:
+                    # remove blank lines and append a single newline
+                    r = r.split('\n')
+                    r = (li for li in r if li.strip())
+                    r = '\n'.join(r) + '\n'
+                    args.out.write(r)
 
 
 def liststr(ls):
@@ -277,6 +290,13 @@ def chunker(iterable, n):
             yield chunk
         else:
             return
+
+
+def stagger(chunks, proc):
+    for i in reversed(range(proc)):
+        for pause in i * [None]:
+            yield pause
+        yield next(chunks)
 
 
 def parse_edirect(text):
