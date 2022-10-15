@@ -152,12 +152,14 @@ class MEFetch(medirect.MEDirect):
                 db = args.pop('db')
                 try:
                     result = Entrez.efetch(db, **args).read()
-                    if args['retmode'] == 'text' and isinstance(result, bytes):
-                        msg = 'text requested but bytes were returned'
-                        raise TypeError(msg)
-                    elif args['retmode'] == 'xml' and isinstance(result, str):
-                        msg = 'xml requested but str was returned'
-                        raise TypeError(msg)
+                    if 'retmode' in args:
+                        mode = args['retmode']
+                        if mode == 'text' and isinstance(result, bytes):
+                            msg = 'text requested but bytes were returned'
+                            raise TypeError(msg)
+                        elif mode == 'xml' and isinstance(result, str):
+                            msg = 'xml requested but str was returned'
+                            raise TypeError(msg)
                     if isinstance(result, bytes):
                         result = result.decode()
                     return result
@@ -221,7 +223,7 @@ class MEFetch(medirect.MEDirect):
             proc = args.proc
 
         # creates a stagger start, see time.sleep with empty chunk
-        chunks = itertools.chain(stagger(chunks, args.proc), chunks)
+        chunks = itertools.chain(stagger(chunks, proc), chunks)
 
         if args.timeout:
             socket.setdefaulttimeout(args.timeout)
@@ -293,10 +295,14 @@ def chunker(iterable, n):
 
 
 def stagger(chunks, proc):
+    yield next(chunks)
     for i in reversed(range(proc)):
         for pause in i * [None]:
             yield pause
-        yield next(chunks)
+        try:
+            yield next(chunks)
+        except StopIteration:
+            break
 
 
 def parse_edirect(text):

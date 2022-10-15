@@ -24,6 +24,6 @@ setuptools.setup(
     name='medirect',
     packages=setuptools.find_packages(exclude=['tests']),
     python_requires='>=3.4',
-    version='0.20.0',
+    version='0.21.0',
     url='https://github.com/crosenth/medirect',
 )
