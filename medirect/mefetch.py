@@ -17,7 +17,7 @@ import functools
 import itertools
 import logging
 import medirect
-import multiprocessing
+import multiprocessing.dummy
 import os
 import retrying
 import socket
@@ -152,6 +152,10 @@ class MEFetch(medirect.MEDirect):
                 db = args.pop('db')
                 try:
                     result = Entrez.efetch(db, **args).read()
+                    if not (isinstance(result, str) or
+                            isinstance(result, bytes)):
+                        msg = 'unknown type returned'
+                        raise TypeError(msg)
                     if 'retmode' in args:
                         mode = args['retmode']
                         if mode == 'text' and isinstance(result, bytes):
@@ -159,6 +163,10 @@ class MEFetch(medirect.MEDirect):
                             raise TypeError(msg)
                         elif mode == 'xml' and isinstance(result, str):
                             msg = 'xml requested but str was returned'
+                            raise TypeError(msg)
+                        elif not (isinstance(result, str) or
+                                  isinstance(result, bytes)):
+                            msg = 'unknown type returned'
                             raise TypeError(msg)
                     if isinstance(result, bytes):
                         result = result.decode()
@@ -205,6 +213,9 @@ class MEFetch(medirect.MEDirect):
             ids = (i.strip() for i in args.id.split(','))
             chunks = ({'id': i} for i in chunker(ids, retmax))
 
+        if 'db' not in base_args:
+            raise ValueError('Missing -db argument')
+
         # add efetch retmax argument
         base_args.update(retmax=retmax)
 
@@ -231,7 +242,7 @@ class MEFetch(medirect.MEDirect):
         efetches = functools.partial(
             self.efetch, args.retry, args.max_retry, **base_args)
 
-        with multiprocessing.get_context('spawn').Pool(processes=proc) as pool:
+        with multiprocessing.dummy.Pool(processes=proc) as pool:
             if args.in_order:
                 results = pool.imap(efetches, chunks)
             elif args.debug:
@@ -330,5 +341,4 @@ def parse_edirect(text):
 
 
 def run():
-    multiprocessing.set_start_method('spawn')
     MEFetch()
