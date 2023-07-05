@@ -306,7 +306,10 @@ def chunker(iterable, n):
 
 
 def stagger(chunks, proc):
-    yield next(chunks)
+    try:
+        yield next(chunks)
+    except StopIteration:
+        return
     for i in reversed(range(proc)):
         for pause in i * [None]:
             yield pause
