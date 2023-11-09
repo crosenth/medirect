@@ -12,7 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with medirect.  If not, see <http://www.gnu.org/licenses/>.
-
 import argparse
 import csv
 import logging
@@ -126,7 +125,7 @@ class Ftract(medirect.MEDirect):
                         qual_match = qualifiers.search(line)
                         qual = qual_match.group('qualifier_key')
                         qual_value = qual_match.group('qualifier_value')
-                        yield(
+                        yield (
                             seqid,
                             *self.coordinates(seq_start, seq_stop),
                             feature,
@@ -160,7 +159,8 @@ class Ftract(medirect.MEDirect):
                 seq_start, seq_stop = None, None
                 feature, qual, qual_value = None, None, None
             else:
-                msg = str(seqid) + ' contains invalid line: ' + line
+                line = line.strip()
+                msg = str(seqid) + ' contains invalid line: "' + line + '"'
                 logging.error(msg)
                 if on_error == 'halt':
                     raise ValueError(msg)
