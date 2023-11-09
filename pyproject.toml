@@ -12,9 +12,9 @@ classifiers = [
 "Programming Language :: Python :: 3 :: Only"
 ]
 dependencies = ["biopython>=1.68", "retrying>=1.3.3"]
-description = "Multiprocessed ncbi edirect and ftract"
+description = "Multithreaded ncbi edirect and ftract"
 keywords = [
-  "bioinformatics", "ncbi", "edirect", "entrez", "multiprocessing"
+  "bioinformatics", "ncbi", "edirect", "entrez", "multiprocessing", "multithreading"
 ]
 license = {file = "LICENSE"}
 name = "medirect"
