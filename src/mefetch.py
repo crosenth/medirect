@@ -22,7 +22,7 @@ import os
 import retrying
 import socket
 import sys
-import time
+import threading
 
 from Bio import Entrez
 from html.parser import HTMLParser
@@ -42,12 +42,12 @@ class MEFetch(medirect.MEDirect):
         parser.add_argument(
             '-debug', '--debug',
             action='store_true',
-            help='no multiprocessing')
+            help='no multithreading')
         parser.add_argument(
             '-in-order', '--in-order',
             action='store_true',
             help=('Order of results determined by ncbi. Note, '
-                  'processor utilization can become bottlenecked '
+                  'thread pool can become bottlenecked '
                   'waiting for slower ncbi request return. [%(default)s]'))
 
         input_group = parser.add_argument_group(title='input')
@@ -81,11 +81,10 @@ class MEFetch(medirect.MEDirect):
                   'http exceptions [%(default)s].  Use -1 for '
                   'continuous retrying.'))
         proc_group.add_argument(
-            '-proc', '--proc',
+            '-reqs', '--reqs',
             metavar='INT',
             type=int,
-            help=('Number of available processors '
-                  'available for requests [3].'))
+            help=('Number of NCBI requests per second [3].'))
         proc_group.add_argument(
             '-retmax', '--retmax',
             metavar='INT',
@@ -106,20 +105,23 @@ class MEFetch(medirect.MEDirect):
             type=float,
             help=('Number of seconds to wait for a '
                   'response before retrying'))
+        proc_group.add_argument(
+            '-threads', '--threads',
+            default=100,
+            metavar='INT',
+            type=int,
+            help='Number of outstanding requests allowed at any given time')
         return parser
 
-    def efetch(self, retry, max_retry, chunks, **args):
+    def efetch(self, reqs, retry, max_retry, chunks, **args):
         """
         Wrap Entrez.efetch with some http exception retrying.
         This function must stay alive for at least 1 second.
         """
-        time.sleep(1)  # force this function to last at least 1 second
 
-        # global vars must be set here to work with spawn processes
-        Entrez.email = self.email
-        Entrez.tool = self.TOOL
-        Entrez.api_key = self.api_key
-        self.setup_logging()
+        # throttle number of requests per second
+        starting.acquire()
+        threading.Timer((1 / reqs), starting.release).start()
 
         def print_retry_message(exception):
             """
@@ -177,8 +179,10 @@ class MEFetch(medirect.MEDirect):
         return rfetch(chunks, **args)
 
     def main(self, args, *unknown_args):
-        self.email = args.email
-        self.api_key = args.api_key
+        Entrez.email = args.email
+        Entrez.tool = self.TOOL
+        Entrez.api_key = args.api_key
+        self.setup_logging()
 
         # zip unknown args to be passed as general efetch args
         unknown_args = [a.strip('-') for a in unknown_args]
@@ -225,24 +229,26 @@ class MEFetch(medirect.MEDirect):
         if args.mode:
             base_args.update(retmode=args.mode)
 
-        if args.proc is None:
+        if args.reqs is None:
             if args.api_key is None:
-                proc = 3
+                reqs = 3
             else:
-                proc = 10  # -api-key allows 10 reqs/sec
+                reqs = 10  # -api-key allows 10 reqs/sec
+        elif args.reqs >= 1:
+            reqs = args.reqs
         else:
-            proc = args.proc
-
-        # creates a stagger start, see time.sleep with empty chunk
-        chunks = itertools.chain(stagger(chunks, proc), chunks)
+            raise ValueError('--reqs cannot be less than 1')
 
         if args.timeout:
             socket.setdefaulttimeout(args.timeout)
 
         efetches = functools.partial(
-            self.efetch, args.retry, args.max_retry, **base_args)
+            self.efetch, reqs, args.retry, args.max_retry, **base_args)
 
-        with multiprocessing.dummy.Pool(processes=proc) as pool:
+        with multiprocessing.dummy.Pool(
+                processes=args.threads,
+                initializer=thread_init,
+                initargs=[threading.Lock()]) as pool:
             if args.in_order:
                 results = pool.imap(efetches, chunks)
             elif args.debug:
@@ -250,13 +256,17 @@ class MEFetch(medirect.MEDirect):
             else:
                 results = pool.imap_unordered(efetches, chunks)
 
-            for r in results:
-                if r:
-                    # remove blank lines and append a single newline
-                    r = r.split('\n')
-                    r = (li for li in r if li.strip())
-                    r = '\n'.join(r) + '\n'
-                    args.out.write(r)
+            for i, r in enumerate(results):
+                # remove blank lines and append a single newline
+                r = r.split('\n')
+                r = (li for li in r if li.strip())
+                r = '\n'.join(r) + '\n'
+                args.out.write(r)
+
+
+def thread_init(lock):
+    global starting
+    starting = lock
 
 
 def liststr(ls):
@@ -303,20 +313,6 @@ def chunker(iterable, n):
             yield chunk
         else:
             return
-
-
-def stagger(chunks, proc):
-    try:
-        yield next(chunks)
-    except StopIteration:
-        return
-    for i in reversed(range(proc)):
-        for pause in i * [None]:
-            yield pause
-        try:
-            yield next(chunks)
-        except StopIteration:
-            break
 
 
 def parse_edirect(text):
