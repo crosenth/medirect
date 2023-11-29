@@ -19,7 +19,7 @@ keywords = [
 license = {file = "LICENSE"}
 name = "medirect"
 readme = "README.rst"
-requires-python = ">=3.4"
+requires-python = ">=3.9"
 version = "0.24.0"
 
 [project.urls]
