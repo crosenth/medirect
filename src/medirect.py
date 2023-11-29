@@ -56,7 +56,7 @@ class MEDirect:
             metavar='',
             default=sys.stdout,
             type=argparse.FileType('w'),
-            help='Output location [sys.stdout]')
+            help='Output location [stdout]')
         return parser
 
     def main(self, args, *other_args):
