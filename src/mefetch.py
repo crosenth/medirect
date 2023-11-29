@@ -345,6 +345,6 @@ def run():
 class MefetchException(Exception):
     def __init__(self, message, chunk):
         super().__init__(
-            f'NCBI error: {message}. An efetch id may be invalid or '
+            f'{message} An efetch id may be invalid or '
             '-retmax and -reqs may be set too high.')
         self.ids = chunk.get('id', [])
