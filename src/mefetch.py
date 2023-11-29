@@ -12,15 +12,15 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with medirect.  If not, see <http://www.gnu.org/licenses/>
+import argparse
+import concurrent.futures
 import csv
 import functools
 import itertools
 import logging
 import medirect
-import multiprocessing.dummy
 import os
 import retrying
-import socket
 import sys
 import threading
 
@@ -33,22 +33,11 @@ class MEFetch(medirect.MEDirect):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '-email', '--email',
-            required=True,
-            help="The name of the run")
-        parser.add_argument(
             '-api-key', '--api-key',
-            help="api key to increase requests/second rate to 10")
+            help="Valid key increases -reqs to 10")
         parser.add_argument(
-            '-debug', '--debug',
-            action='store_true',
-            help='no multithreading')
-        parser.add_argument(
-            '-in-order', '--in-order',
-            action='store_true',
-            help=('Order of results determined by ncbi. Note, '
-                  'thread pool can become bottlenecked '
-                  'waiting for slower ncbi request return. [%(default)s]'))
+            '-email', '--email',
+            required=True)
 
         input_group = parser.add_argument_group(title='input')
         input_group.add_argument(
@@ -60,7 +49,6 @@ class MEFetch(medirect.MEDirect):
             '-csv', '--csv',
             action='store_true',
             help='If the input is in csv format')
-
         input_group.add_argument(
             '-format', '--format',
             metavar='',
@@ -70,47 +58,53 @@ class MEFetch(medirect.MEDirect):
             metavar='',
             help='text, xml, asn.1, json')
 
-        proc_group = parser.add_argument_group(title='processing')
-        retry_group = proc_group.add_mutually_exclusive_group()
-        retry_group.add_argument(
+        out_group = parser.add_argument_group(title='output')
+        out_group.add_argument(
+            '-failed', '--failed',
+            help='Output to file ids that failed efetch',
+            metavar='FILE',
+            type=argparse.FileType('w'))
+
+        proc_group = parser.add_argument_group(title='efetching')
+        proc_group.add_argument(
+            '-in-order', '--in-order',
+            action='store_true',
+            help='Return results in same order as input [%(default)s]')
+        proc_group.add_argument(
             '-max-retry', '--max-retry',
             metavar='INT',
             type=lambda x: None if x == '-1' else int(x),
-            default=10,
-            help=('Max number of retries after consecutive '
-                  'http exceptions [%(default)s].  Use -1 for '
-                  'continuous retrying.'))
+            default=3,
+            help='Max number of retries after consecutive '
+                 'http exceptions [%(default)s].  Use -1 for '
+                 'continuous retrying.')
         proc_group.add_argument(
             '-reqs', '--reqs',
             metavar='INT',
             type=int,
-            help=('Number of NCBI requests per second [3].'))
+            help='Number of NCBI requests per second [3].')
         proc_group.add_argument(
             '-retmax', '--retmax',
             metavar='INT',
             default=self.RETMAX,
             type=int,
-            help=('number of records returned per request '
-                  'or chunksize [%(default)s]'))
+            help='number of records returned per request '
+                 'or chunksize [%(default)s]')
         proc_group.add_argument(
             '-retry', '--retry',
             metavar='MILLISECONDS',
             type=int,
             default=60000,
-            help=('Number of milliseconds to wait '
-                  'between -max-retry(ies) [%(default)s]'))
+            help='Number of milliseconds to wait '
+                 'between -max-retry(ies) [%(default)s]')
         proc_group.add_argument(
             '-timeout', '--timeout',
             metavar='SECONDS',
+            default=3600,  # 1 hr
             type=float,
-            help=('Number of seconds to wait for a '
-                  'response before retrying'))
-        proc_group.add_argument(
-            '-threads', '--threads',
-            default=100,
-            metavar='INT',
-            type=int,
-            help='Number of outstanding requests allowed at any given time')
+            help='Number of seconds to wait for a '
+                 'response before retrying [%(default)s]')
+
         return parser
 
     def efetch(self, reqs, retry, max_retry, chunks, **args):
@@ -118,25 +112,24 @@ class MEFetch(medirect.MEDirect):
         Wrap Entrez.efetch with some http exception retrying.
         This function must stay alive for at least 1 second.
         """
-
-        # throttle number of requests per second
+        # throttle number of requests per second per NCBI rules
         starting.acquire()
         threading.Timer((1 / reqs), starting.release).start()
 
-        def print_retry_message(exception):
+        def print_retry_message(e):
             """
             http exceptions:
                 http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
             retrying api:
                 https://pypi.python.org/pypi/retrying
             """
-            if len(exception.ids) > 25:
-                ids = ', '.join(exception.ids[:3]) + '...'
+            if len(e.ids) > 25:
+                ids = ', '.join(e.ids[:3]) + '...'
             else:
-                ids = ', '.join(exception.ids)
+                ids = ', '.join(e.ids)
             seconds = float(retry) / 1000
             msg = '{} {}, retrying in {} seconds... {} max retry(ies)'
-            msg = msg.format(ids, repr(exception), seconds, max_retry or 'no')
+            msg = msg.format(ids, repr(e), seconds, max_retry or 'no')
             logging.error(msg)
             return True
 
@@ -149,7 +142,8 @@ class MEFetch(medirect.MEDirect):
         def rfetch(chunk, **args):
             if chunk:
                 pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
-                logging.info(edirect_pprint(**dict(pprint_chunk, **args)))
+                emsg = edirect_pprint(**dict(pprint_chunk, **args))
+                logging.info('Sent: ' + emsg)
                 args.update(**chunk)
                 db = args.pop('db')
                 try:
@@ -172,10 +166,10 @@ class MEFetch(medirect.MEDirect):
                             raise TypeError(msg)
                     if isinstance(result, bytes):
                         result = result.decode()
+                    logging.info('Received: ' + emsg)
                     return result
-                except Exception as exception:
-                    exception.ids = chunk.get('id', [])
-                    raise exception
+                except Exception as e:
+                    raise MefetchException(chunk) from e
         return rfetch(chunks, **args)
 
     def main(self, args, *unknown_args):
@@ -239,32 +233,37 @@ class MEFetch(medirect.MEDirect):
         else:
             raise ValueError('--reqs cannot be less than 1')
 
-        if args.timeout:
-            socket.setdefaulttimeout(args.timeout)
-
         efetches = functools.partial(
             self.efetch, reqs, args.retry, args.max_retry, **base_args)
 
-        with multiprocessing.dummy.Pool(
-                processes=args.threads,
-                initializer=thread_init,
-                initargs=[threading.Lock()]) as pool:
+        with concurrent.futures.ThreadPoolExecutor(
+                initializer=initializer,
+                initargs=[threading.Lock()]) as executor:
             if args.in_order:
-                results = pool.imap(efetches, chunks)
-            elif args.debug:
-                results = map(efetches, chunks)
+                results = executor.map(efetches, chunks, timeout=args.timeout)
             else:
-                results = pool.imap_unordered(efetches, chunks)
+                results = concurrent.futures.as_completed(
+                    (executor.submit(efetches, c) for c in chunks),
+                    timeout=args.timeout)
+                results = (r.result() for r in results)
 
-            for i, r in enumerate(results):
-                # remove blank lines and append a single newline
-                r = r.split('\n')
-                r = (li for li in r if li.strip())
-                r = '\n'.join(r) + '\n'
-                args.out.write(r)
+            while True:
+                try:
+                    r = next(results)
+                    r = r.split('\n')
+                    r = (li for li in r if li.strip())
+                    r = '\n'.join(r) + '\n'
+                    args.out.write(r)
+                except MefetchException as e:
+                    if args.failed:
+                        args.failed.write('\n'.join(e.ids) + '\n')
+                    else:
+                        raise e
+                except StopIteration:
+                    break
 
 
-def thread_init(lock):
+def initializer(lock):
     global starting
     starting = lock
 
@@ -341,3 +340,11 @@ def parse_edirect(text):
 
 def run():
     MEFetch()
+
+
+class MefetchException(Exception):
+    def __init__(self, chunk):
+        super().__init__(
+            'NCBI returnthe error. An efetch id may be invalid or '
+            '-retmax and -reqs may be set too high.')
+        self.ids = chunk.get('id', [])
