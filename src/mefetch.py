@@ -169,7 +169,7 @@ class MEFetch(medirect.MEDirect):
                     logging.info('Received: ' + emsg)
                     return result
                 except Exception as e:
-                    raise MefetchException(chunk) from e
+                    raise MefetchException(repr(e), chunk) from e
         return rfetch(chunks, **args)
 
     def main(self, args, *unknown_args):
@@ -343,8 +343,8 @@ def run():
 
 
 class MefetchException(Exception):
-    def __init__(self, chunk):
+    def __init__(self, message, chunk):
         super().__init__(
-            'NCBI returnthe error. An efetch id may be invalid or '
+            f'NCBI error: {message}. An efetch id may be invalid or '
             '-retmax and -reqs may be set too high.')
         self.ids = chunk.get('id', [])
