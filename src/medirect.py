@@ -17,6 +17,7 @@ main medirect object, all commands must extend this class
 '''
 import argparse
 import logging
+import os
 import sys
 
 
@@ -27,7 +28,10 @@ class MEDirect:
         if testing is None:
             parser = self.add_arguments(self.arg_parser())
             args, other_args = parser.parse_known_args()
-            self.log = args.log
+            if args.log:
+                self.log = open(args.log, 'a')
+            else:
+                self.log = sys.stderr
             self.verbosity = args.verbosity
             self.main(args, *other_args)
 
@@ -42,8 +46,9 @@ class MEDirect:
         parser = argparse.ArgumentParser()
         parser.add_argument(
             '-log', '--log',
-            metavar='FILE',
-            help='Send logging to a file')
+            default=os.environ.get('MEFETCH_LOG', None),
+            help='Send logging to a file [stderr]',
+            metavar='FILE')
         parser.add_argument(
             '-v', '--verbose',
             action='count',
@@ -67,11 +72,6 @@ class MEDirect:
         """
         setup global logging
         """
-        if self.log:
-            logfile = open(self.log, 'a')
-        else:
-            logfile = sys.stderr
-
         loglevel = {
             0: logging.ERROR,
             1: logging.WARNING,
@@ -82,7 +82,7 @@ class MEDirect:
         log_format = ('%(asctime)s %(levelname)s %(lineno)s %(message)s')
 
         logging.basicConfig(
-            stream=logfile,
+            stream=self.log,
             format=log_format,
             level=loglevel,
             datefmt='%Y-%m-%d %H:%M:%S')

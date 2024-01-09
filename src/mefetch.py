@@ -34,10 +34,13 @@ class MEFetch(medirect.MEDirect):
     def add_arguments(self, parser):
         parser.add_argument(
             '-api-key', '--api-key',
-            help="Valid key increases -reqs to 10")
+            default=os.environ.get('MEFETCH_API_KEY', None),
+            help="Increases -reqs to 10",
+            metavar='')
         parser.add_argument(
             '-email', '--email',
-            required=True)
+            default=os.environ.get('MEFETCH_EMAIL', None),
+            metavar='')
 
         input_group = parser.add_argument_group(title='input')
         input_group.add_argument(
@@ -50,11 +53,18 @@ class MEFetch(medirect.MEDirect):
             action='store_true',
             help='If the input is in csv format')
         input_group.add_argument(
+            '-db', '--db',
+            metavar='',
+            default=os.environ.get('MEFETCH_DB', None),
+            help='NCBI database name to query')
+        input_group.add_argument(
             '-format', '--format',
             metavar='',
+            default=os.environ.get('MEFETCH_FORMAT', None),
             help='Format of record or report')
         input_group.add_argument(
             '-mode', '--mode',
+            default=os.environ.get('MEFETCH_MODE', None),
             metavar='',
             help='text, xml, asn.1, json')
 
@@ -69,45 +79,53 @@ class MEFetch(medirect.MEDirect):
         proc_group.add_argument(
             '-in-order', '--in-order',
             action='store_true',
-            help='Return results in same order as input [%(default)s]')
+            help='Return results in same order as input')
         proc_group.add_argument(
             '-max-retry', '--max-retry',
             metavar='INT',
             type=lambda x: None if x == '-1' else int(x),
-            default=3,
+            default=int(os.environ.get('MEFETCH_MAX_RETRY', 3)),
             help='Max number of retries after consecutive '
                  'http exceptions [%(default)s].  Use -1 for '
                  'continuous retrying.')
         proc_group.add_argument(
             '-reqs', '--reqs',
+            default=int(os.environ.get('MEFETCH_TIMEOUT', 0)) or None,
             metavar='INT',
             type=int,
             help='Number of NCBI requests per second [3].')
         proc_group.add_argument(
             '-retmax', '--retmax',
             metavar='INT',
-            default=self.RETMAX,
+            default=int(os.environ.get('MEFETCH_RETMAX', self.RETMAX)),
             type=int,
             help='number of records returned per request '
                  'or chunksize [%(default)s]')
         proc_group.add_argument(
             '-retry', '--retry',
-            metavar='MILLISECONDS',
-            type=int,
-            default=60000,
+            default=int(os.environ.get('MEFETCH_RETRY', 60000)),
             help='Number of milliseconds to wait '
-                 'between -max-retry(ies) [%(default)s]')
+                 'between -max-retry(ies) [%(default)s]',
+            metavar='MILLISECONDS',
+            type=int)
         proc_group.add_argument(
             '-timeout', '--timeout',
-            metavar='SECONDS',
-            default=3600,  # 1 hr
-            type=float,
+            default=int(os.environ.get('MEFETCH_TIMEOUT', 0)) or None,
             help='Number of seconds to wait for a '
-                 'response before retrying [%(default)s]')
+                 'response before retrying [inf]',
+            metavar='SECONDS',
+            type=float)
+        proc_group.add_argument(
+            '-workers', '--workers',
+            default=int(os.environ.get('MEFETCH_WORKERS', 0)) or None,
+            help='Number of worker threads.  Worker threads are '
+                 'otherwise managed by the ThreadPoolExecuter.',
+            metavar='INT',
+            type=int)
 
         return parser
 
-    def efetch(self, reqs, retry, max_retry, chunks, **args):
+    def efetch(self, db, reqs, retry, max_retry, chunks, **args):
         """
         Wrap Entrez.efetch with some http exception retrying.
         This function must stay alive for at least 1 second.
@@ -123,13 +141,9 @@ class MEFetch(medirect.MEDirect):
             retrying api:
                 https://pypi.python.org/pypi/retrying
             """
-            if len(e.ids) > 25:
-                ids = ', '.join(e.ids[:3]) + '...'
-            else:
-                ids = ', '.join(e.ids)
             seconds = float(retry) / 1000
             msg = '{} {}, retrying in {} seconds... {} max retry(ies)'
-            msg = msg.format(ids, repr(e), seconds, max_retry or 'no')
+            msg = msg.format(e.id_str(), repr(e), seconds, max_retry or 'no')
             logging.error(msg)
             return True
 
@@ -140,43 +154,56 @@ class MEFetch(medirect.MEDirect):
             wait_fixed=retry,
             stop_max_attempt_number=tries)
         def rfetch(chunk, **args):
-            if chunk:
-                pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
-                emsg = edirect_pprint(**dict(pprint_chunk, **args))
-                logging.info('Sent: ' + emsg)
-                args.update(**chunk)
-                db = args.pop('db')
-                try:
-                    result = Entrez.efetch(db, **args).read()
-                    if not (isinstance(result, str) or
-                            isinstance(result, bytes)):
+            pprint_chunk = dict((k, liststr(v)) for k, v in chunk.items())
+            emsg = edirect_pprint(**dict(pprint_chunk, **args))
+            logging.info('Sent: ' + emsg)
+            args.update(**chunk)
+            try:
+                result = Entrez.efetch(db, **args).read()
+                if not (isinstance(result, str) or
+                        isinstance(result, bytes)):
+                    msg = 'unknown type returned'
+                    raise TypeError(msg)
+                if 'retmode' in args:
+                    mode = args['retmode']
+                    if mode == 'text' and isinstance(result, bytes):
+                        msg = 'text requested but bytes were returned'
+                        raise TypeError(msg)
+                    elif mode == 'xml' and isinstance(result, str):
+                        msg = 'xml requested but str was returned'
+                        raise TypeError(msg)
+                    elif not (isinstance(result, str) or
+                              isinstance(result, bytes)):
                         msg = 'unknown type returned'
                         raise TypeError(msg)
-                    if 'retmode' in args:
-                        mode = args['retmode']
-                        if mode == 'text' and isinstance(result, bytes):
-                            msg = 'text requested but bytes were returned'
-                            raise TypeError(msg)
-                        elif mode == 'xml' and isinstance(result, str):
-                            msg = 'xml requested but str was returned'
-                            raise TypeError(msg)
-                        elif not (isinstance(result, str) or
-                                  isinstance(result, bytes)):
-                            msg = 'unknown type returned'
-                            raise TypeError(msg)
-                    if isinstance(result, bytes):
-                        result = result.decode()
-                    logging.info('Received: ' + emsg)
-                    return result
-                except Exception as e:
-                    raise MefetchException(repr(e), chunk) from e
+                if isinstance(result, bytes):
+                    result = result.decode()
+                logging.info('Received: ' + emsg)
+                return result
+            except Exception as e:
+                raise MefetchException(repr(e), chunk) from e
         return rfetch(chunks, **args)
 
     def main(self, args, *unknown_args):
+        if not args.email:
+            msg = 'the following arguments are required: -email/--email'
+            raise ValueError(msg)
+        if not args.db:
+            msg = 'the following arguments are required: -db/--db'
+            raise ValueError(msg)
+        if args.retmax > self.RETMAX:
+            msg = '-retmax/--retmax {} cannot be larger than {}'
+            raise ValueError(msg.format(args.retmax, self.RETMAX))
+
         Entrez.email = args.email
         Entrez.tool = self.TOOL
         Entrez.api_key = args.api_key
+
         self.setup_logging()
+
+        # print settings
+        for k, v in vars(args).items():
+            logging.debug(f'-{k} = {v}')
 
         # zip unknown args to be passed as general efetch args
         unknown_args = [a.strip('-') for a in unknown_args]
@@ -189,10 +216,11 @@ class MEFetch(medirect.MEDirect):
             chunks = csv.DictReader(ids)
         # piped in edirect xml file
         elif args.id is sys.stdin:
-            retmax = min(self.RETMAX, args.retmax)  # 10k is ncbi max
+            retmax = args.retmax
             edirect = parse_edirect(args.id.read())
             count = int(edirect['count'])
             base_args = dict(base_args, **edirect)
+            args.db = base_args.pop('db')
             chunks = ({'retstart': r} for r in range(0, count, retmax))
         # -id csv file
         elif os.path.isfile(args.id) and args.csv:
@@ -201,18 +229,15 @@ class MEFetch(medirect.MEDirect):
             chunks = csv.DictReader(ids)
         # -id txt file of ids
         elif os.path.isfile(args.id):
-            retmax = min(self.RETMAX, args.retmax)  # 10k is ncbi max
+            retmax = args.retmax
             ids = (i for i in open(args.id) if not i.startswith('#'))
             ids = (i.strip() for i in ids)
             chunks = ({'id': i} for i in chunker(ids, retmax))
         # comma separated list of ids
         else:
-            retmax = min(self.RETMAX, args.retmax)  # 10k is ncbi max
+            retmax = args.retmax
             ids = (i.strip() for i in args.id.split(','))
             chunks = ({'id': i} for i in chunker(ids, retmax))
-
-        if 'db' not in base_args:
-            raise ValueError('Missing -db argument')
 
         # add efetch retmax argument
         base_args.update(retmax=retmax)
@@ -234,9 +259,15 @@ class MEFetch(medirect.MEDirect):
             raise ValueError('--reqs cannot be less than 1')
 
         efetches = functools.partial(
-            self.efetch, reqs, args.retry, args.max_retry, **base_args)
+            self.efetch,
+            args.db,
+            reqs,
+            args.retry,
+            args.max_retry,
+            **base_args)
 
         with concurrent.futures.ThreadPoolExecutor(
+                max_workers=args.workers,
                 initializer=initializer,
                 initargs=[threading.Lock()]) as executor:
             if args.in_order:
@@ -245,18 +276,19 @@ class MEFetch(medirect.MEDirect):
                 results = concurrent.futures.as_completed(
                     (executor.submit(efetches, c) for c in chunks),
                     timeout=args.timeout)
-                results = (r.result() for r in results)
 
             while True:
                 try:
                     r = next(results)
+                    # as_completed returns a concurrent.futures.Future
+                    r = r if args.in_order else r.result()
                     r = r.split('\n')
                     r = (li for li in r if li.strip())
                     r = '\n'.join(r) + '\n'
                     args.out.write(r)
                 except MefetchException as e:
                     if args.failed:
-                        args.failed.write('\n'.join(e.ids) + '\n')
+                        args.failed.write(e.file_str())
                     else:
                         raise e
                 except StopIteration:
@@ -345,6 +377,24 @@ def run():
 class MefetchException(Exception):
     def __init__(self, message, chunk):
         super().__init__(
-            f'{message} An efetch id may be invalid or '
-            '-retmax and -reqs may be set too high.')
-        self.ids = chunk.get('id', [])
+            f'{message} NCBI has returned an error.  An efetch id may be '
+            'invalid or -retmax, -reqs or -workers may be set too high.')
+        self.chunk = chunk
+
+    def id_str(self):
+        if 'id' not in self.chunk:
+            return ''
+        elif isinstance(self.chunk['id'], str):
+            return edirect_pprint(**self.chunk)
+        elif len(self.chunk['id']) > 25:
+            return ', '.join(self.chunk['id'][:3]) + '...'
+        else:
+            return ', '.join(self.chunk['id'])
+
+    def file_str(self):
+        if 'id' not in self.chunk:
+            return ''
+        elif isinstance(self.chunk['id'], str):
+            return self.chunk['id'] + '\n'
+        else:
+            return '\n'.join(self.chunk['id'])
