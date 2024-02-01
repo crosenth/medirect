@@ -29,7 +29,7 @@ from html.parser import HTMLParser
 
 
 class MEFetch(medirect.MEDirect):
-    RETMAX = 10000
+    RETMAX = 9999  # supposely 10000 but I can only get 9999
 
     def add_arguments(self, parser):
         parser.add_argument(
