@@ -90,7 +90,7 @@ class MEFetch(medirect.MEDirect):
                  'continuous retrying.')
         proc_group.add_argument(
             '-reqs', '--reqs',
-            default=int(os.environ.get('MEFETCH_TIMEOUT', 0)) or None,
+            default=int(os.environ.get('MEFETCH_REQS', 0)) or None,
             metavar='INT',
             type=int,
             help='Number of NCBI requests per second [3].')
