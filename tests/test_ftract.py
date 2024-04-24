@@ -1,6 +1,5 @@
+import ftract
 import unittest
-
-from medirect import ftract
 
 
 class Test_ftract(unittest.TestCase):

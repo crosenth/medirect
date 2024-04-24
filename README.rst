@@ -27,7 +27,7 @@ package to help me gather data from NCBI quickly by utilizing multiple processor
 to make multiple data requests from the NCBI database servers.  The utilities 
 mefetch and ftract are designed to work like efetch and xtract and 
 can be slotted in along with other ncbi utilities and follow the same edirect
-`documenation <https://www.ncbi.nlm.nih.gov/books/NBK25501/>`_,
+`documentation <https://www.ncbi.nlm.nih.gov/books/NBK25501/>`__,
 `guidelines and requirements <https://www.ncbi.nlm.nih.gov/books/NBK25497/#_chapter2_Usage_Guidelines_and_Requiremen_>`_
 and
 `usage policies <https://www.ncbi.nlm.nih.gov/home/about/policies.shtml>`_.  The 
@@ -112,7 +112,7 @@ determined by how fast ncbi returns results per process.
 
 The ``-retmax`` argument (or chunksize) determines the number of results 
 returned per ``-proc``.  By default, it is set to the 10,000 max records per
-`documentation <https://www.ncbi.nlm.nih.gov/books/NBK25499/#_chapter4_EFetch_>`_.
+`documentation <https://www.ncbi.nlm.nih.gov/books/NBK25499/#_chapter4_EFetch_>`__.
 Setting the ``-retmax`` to higher than 10,000 will automatically be set back
 down to 10,000.
 
