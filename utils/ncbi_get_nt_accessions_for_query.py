@@ -85,6 +85,7 @@ if __name__ == "__main__":
             '-email', args.email,
             '-mode', 'text',
             '-format', 'acc',
+            '-db', 'nuccore',
             '-mat-retry', str(args.retry_max),
             '-retry', str(args.retry_delay),
             '-proc', str(args.ncbi_concurrent_connections),
