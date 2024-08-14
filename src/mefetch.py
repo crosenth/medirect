@@ -198,7 +198,7 @@ class MEFetch(medirect.MEDirect):
 
         Entrez.email = args.email
         Entrez.tool = self.TOOL
-        Entrez.api_key = args.api_key
+        Entrez.api_key = args.api_key or None
 
         self.setup_logging()
 
