@@ -93,7 +93,8 @@ class MEFetch(medirect.MEDirect):
             default=int(os.environ.get('MEFETCH_REQS', 0)) or None,
             metavar='INT',
             type=int,
-            help='Number of NCBI requests per second [3].')
+            help='Number of NCBI requests per second '
+                 '[3] (with -api-key [10]).')
         proc_group.add_argument(
             '-retmax', '--retmax',
             metavar='INT',
