@@ -189,9 +189,6 @@ class MEFetch(medirect.MEDirect):
         if not args.email:
             msg = 'the following arguments are required: -email/--email'
             raise ValueError(msg)
-        if not args.db:
-            msg = 'the following arguments are required: -db/--db'
-            raise ValueError(msg)
         if args.retmax > self.RETMAX:
             msg = '-retmax/--retmax {} cannot be larger than {}'
             raise ValueError(msg.format(args.retmax, self.RETMAX))
@@ -239,6 +236,10 @@ class MEFetch(medirect.MEDirect):
             retmax = args.retmax
             ids = (i.strip() for i in args.id.split(','))
             chunks = ({'id': i} for i in chunker(ids, retmax))
+
+        if not args.db:
+            msg = 'the following arguments are required: -db/--db'
+            raise ValueError(msg)
 
         # add efetch retmax argument
         base_args.update(retmax=retmax)
