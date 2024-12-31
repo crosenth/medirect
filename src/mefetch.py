@@ -70,10 +70,13 @@ class MEFetch(medirect.MEDirect):
 
         out_group = parser.add_argument_group(title='output')
         out_group.add_argument(
-            '-failed', '--failed',
-            help='Output to file ids that failed efetch',
-            metavar='FILE',
-            type=argparse.FileType('w'))
+            '-success', '--success',
+            help='Output to file ids that passed efetch as they are returned',
+            metavar='FILE')
+        out_group.add_argument(
+            '-failure', '--failure',
+            help='Output to file ids that failed efetch as they are returned',
+            metavar='FILE')
 
         proc_group = parser.add_argument_group(title='efetching')
         proc_group.add_argument(
@@ -180,7 +183,7 @@ class MEFetch(medirect.MEDirect):
                 if isinstance(result, bytes):
                     result = result.decode()
                 logging.info('Received: ' + emsg)
-                return result
+                return result, chunk
             except Exception as e:
                 raise MefetchException(repr(e), chunk) from e
         return rfetch(chunks, **args)
@@ -241,6 +244,25 @@ class MEFetch(medirect.MEDirect):
             msg = 'the following arguments are required: -db/--db'
             raise ValueError(msg)
 
+        if args.success:
+            os.makedirs(os.path.dirname(args.success), exist_ok=True)
+            success = csv.DictWriter(
+                open(args.success, 'w'),
+                extrasaction='ignore',
+                fieldnames=['id', 'seq_start', 'seq_stop', 'strand'])
+            success.writeheader()
+        else:
+            success = None
+        if args.failure:
+            os.makedirs(os.path.dirname(args.failure), exist_ok=True)
+            failure = csv.DictWriter(
+                open(args.failure, 'w'),
+                extrasaction='ignore',
+                fieldnames=['id', 'seq_start', 'seq_stop', 'strand'])
+            failure.writeheader()
+        else:
+            failure = None
+
         # add efetch retmax argument
         base_args.update(retmax=retmax)
 
@@ -283,14 +305,16 @@ class MEFetch(medirect.MEDirect):
                 try:
                     r = next(results)
                     # as_completed returns a concurrent.futures.Future
-                    r = r if args.in_order else r.result()
+                    r, chunk = r if args.in_order else r.result()
                     r = r.split('\n')
                     r = (li for li in r if li.strip())
                     r = '\n'.join(r) + '\n'
                     args.out.write(r)
+                    if success:
+                        success.writerow(chunk)
                 except MefetchException as e:
-                    if args.failed:
-                        args.failed.write(e.file_str())
+                    if failure:
+                        failure.writerow(e.chunk)
                     else:
                         raise e
                 except StopIteration:
@@ -378,9 +402,7 @@ def run():
 
 class MefetchException(Exception):
     def __init__(self, message, chunk):
-        super().__init__(
-            f'{message} NCBI has returned an error.  An efetch id may be '
-            'invalid or -retmax, -reqs or -workers may be set too high.')
+        super().__init__(f'{message} NCBI has returned an error')
         self.chunk = chunk
 
     def id_str(self):
