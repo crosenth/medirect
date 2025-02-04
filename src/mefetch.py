@@ -12,7 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with medirect.  If not, see <http://www.gnu.org/licenses/>
-import argparse
 import concurrent.futures
 import csv
 import functools
@@ -245,7 +244,9 @@ class MEFetch(medirect.MEDirect):
             raise ValueError(msg)
 
         if args.success:
-            os.makedirs(os.path.dirname(args.success), exist_ok=True)
+            dirname = os.path.dirname(args.success)
+            if dirname:
+                os.makedirs(dirname, exist_ok=True)
             success = csv.DictWriter(
                 open(args.success, 'w'),
                 extrasaction='ignore',
@@ -254,7 +255,9 @@ class MEFetch(medirect.MEDirect):
         else:
             success = None
         if args.failure:
-            os.makedirs(os.path.dirname(args.failure), exist_ok=True)
+            dirname = os.path.dirname(args.failure)
+            if dirname:
+                os.makedirs(dirname, exist_ok=True)
             failure = csv.DictWriter(
                 open(args.failure, 'w'),
                 extrasaction='ignore',
