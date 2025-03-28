@@ -112,13 +112,6 @@ class MEFetch(medirect.MEDirect):
             metavar='MILLISECONDS',
             type=int)
         proc_group.add_argument(
-            '-timeout', '--timeout',
-            default=int(os.environ.get('MEFETCH_TIMEOUT', 0)) or None,
-            help='Number of seconds to wait for a '
-                 'response before retrying [inf]',
-            metavar='SECONDS',
-            type=float)
-        proc_group.add_argument(
             '-workers', '--workers',
             default=int(os.environ.get('MEFETCH_WORKERS', 0)) or None,
             help='Number of worker threads.  Worker threads are '
@@ -298,15 +291,13 @@ class MEFetch(medirect.MEDirect):
                 initializer=initializer,
                 initargs=[threading.Lock()]) as executor:
             if args.in_order:
-                results = executor.map(efetches, chunks, timeout=args.timeout)
+                results = executor.map(efetches, chunks)
             else:
                 results = concurrent.futures.as_completed(
-                    (executor.submit(efetches, c) for c in chunks),
-                    timeout=args.timeout)
+                    executor.submit(efetches, c) for c in chunks)
 
-            while True:
+            for r in results:
                 try:
-                    r = next(results)
                     # as_completed returns a concurrent.futures.Future
                     r, chunk = r if args.in_order else r.result()
                     r = r.split('\n')
