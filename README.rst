@@ -1,5 +1,5 @@
 =====================================
-medirect: multiprocessed ncbi edirect
+medirect: multithreaded ncbi edirect
 =====================================
 
 medirect - a multiprocessed utility for retrieving records and parsing feature tables from ncbi
