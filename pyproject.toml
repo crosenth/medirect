@@ -7,7 +7,6 @@ authors = [
   {email = "crosenth@gmail.com", name = "Chris Rosenthal"}
 ]
 classifiers = [
-"License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
 "Environment :: Console",
 "Intended Audience :: End Users/Desktop",
 "Intended Audience :: Science/Research",
