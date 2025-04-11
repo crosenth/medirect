@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
 [project]
 authors = [
   {email = "crosenth@gmail.com", name = "Chris Rosenthal"}
@@ -12,6 +16,7 @@ classifiers = [
 ]
 dependencies = ["biopython>=1.68", "retrying>=1.3.3"]
 description = "Multithreaded ncbi edirect and ftract"
+dynamic = ['version']
 keywords = [
   "bioinformatics", "ncbi", "edirect", "entrez", "multiprocessing", "multithreading"
 ]
@@ -19,7 +24,6 @@ license = {file = "LICENSE"}
 name = "medirect"
 readme = "README.rst"
 requires-python = ">=3.9"
-version = "0.32.0"
 
 [project.urls]
 repository = "https://github.com/crosenth/medirect"
@@ -27,3 +31,6 @@ repository = "https://github.com/crosenth/medirect"
 [project.scripts]
 ftract = "ftract:run"
 mefetch = "mefetch:run"
+
+[tool.setuptools_scm]
+# can be empty if no extra settings are needed, presence enables setuptools-scm

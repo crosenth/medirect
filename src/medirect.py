@@ -20,6 +20,8 @@ import logging
 import os
 import sys
 
+from importlib.metadata import version
+
 
 class MEDirect:
     TOOL = 'medirect'
@@ -56,6 +58,11 @@ class MEDirect:
             default=1,
             help='Increase verbosity of screen output '
                  '(eg, -v is verbose, -vv more so)')
+        parser.add_argument(
+            '-V', '--version',
+            action='version',
+            version=version('medirect'),
+            help='Print the version number and exit')
         parser.add_argument(
             '-out', '--out',
             metavar='',

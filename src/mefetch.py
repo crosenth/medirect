@@ -73,7 +73,7 @@ class MEFetch(medirect.MEDirect):
             help='Output to file ids that passed efetch as they are returned',
             metavar='FILE')
         out_group.add_argument(
-            '-failure', '--failure',
+            '-failed', '--failed',
             help='Output to file ids that failed efetch as they are returned',
             metavar='FILE')
 
@@ -85,8 +85,8 @@ class MEFetch(medirect.MEDirect):
         proc_group.add_argument(
             '-max-retry', '--max-retry',
             metavar='INT',
-            type=lambda x: None if x == '-1' else int(x),
-            default=int(os.environ.get('MEFETCH_MAX_RETRY', 3)),
+            default=int(os.environ.get('MEFETCH_MAX_RETRY', '3')),
+            type=int,
             help='Max number of retries after consecutive '
                  'http exceptions [%(default)s].  Use -1 for '
                  'continuous retrying.')
@@ -155,6 +155,8 @@ class MEFetch(medirect.MEDirect):
             logging.info('Sent: ' + emsg)
             args.update(**chunk)
             try:
+                from urllib.error import HTTPError
+                raise HTTPError('fadsafds')
                 result = Entrez.efetch(db, **args).read()
                 if not (isinstance(result, str) or
                         isinstance(result, bytes)):
@@ -247,17 +249,17 @@ class MEFetch(medirect.MEDirect):
             success.writeheader()
         else:
             success = None
-        if args.failure:
-            dirname = os.path.dirname(args.failure)
+        if args.failed:
+            dirname = os.path.dirname(args.failed)
             if dirname:
                 os.makedirs(dirname, exist_ok=True)
-            failure = csv.DictWriter(
-                open(args.failure, 'w'),
+            failed = csv.DictWriter(
+                open(args.failed, 'w'),
                 extrasaction='ignore',
                 fieldnames=['id', 'seq_start', 'seq_stop', 'strand'])
-            failure.writeheader()
+            failed.writeheader()
         else:
-            failure = None
+            failed = None
 
         # add efetch retmax argument
         base_args.update(retmax=retmax)
@@ -277,6 +279,9 @@ class MEFetch(medirect.MEDirect):
             reqs = args.reqs
         else:
             raise ValueError('--reqs cannot be less than 1')
+
+        if args.max_retry == -1:
+            args.max_retry = None
 
         efetches = functools.partial(
             self.efetch,
@@ -307,8 +312,8 @@ class MEFetch(medirect.MEDirect):
                     if success:
                         success.writerow(chunk)
                 except MefetchException as e:
-                    if failure:
-                        failure.writerow(e.chunk)
+                    if failed:
+                        failed.writerow(e.chunk)
                     else:
                         raise e
                 except StopIteration:
