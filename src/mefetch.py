@@ -155,8 +155,6 @@ class MEFetch(medirect.MEDirect):
             logging.info('Sent: ' + emsg)
             args.update(**chunk)
             try:
-                from urllib.error import HTTPError
-                raise HTTPError('fadsafds')
                 result = Entrez.efetch(db, **args).read()
                 if not (isinstance(result, str) or
                         isinstance(result, bytes)):
