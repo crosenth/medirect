@@ -19,7 +19,7 @@ dynamic = ['version']
 keywords = [
   "bioinformatics", "ncbi", "edirect", "entrez", "multiprocessing", "multithreading"
 ]
-license = {file = "LICENSE"}
+license = "GPL-3.0-only"
 name = "medirect"
 readme = "README.rst"
 requires-python = ">=3.9"
